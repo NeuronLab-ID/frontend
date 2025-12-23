@@ -79,6 +79,57 @@ Create a `.env.local` file:
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
+### Docker
+
+Build and run the application using Docker:
+
+```bash
+# Build the image
+docker build -t neuronlab-frontend .
+
+# Run the container
+docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8000 neuronlab-frontend
+```
+
+Or pull from GitHub Container Registry:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/neuronlab-id/frontend:latest
+
+# Run the container
+docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8000 ghcr.io/neuronlab-id/frontend:latest
+```
+
+#### Docker Compose
+
+Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/neuronlab-id/frontend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+
+  backend:
+    image: ghcr.io/neuronlab-id/backend:latest
+    ports:
+      - "8000:8000"
+```
+
+Run with:
+
+```bash
+docker-compose up -d
+```
+
 ## Project Structure
 
 ```
