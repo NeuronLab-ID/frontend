@@ -8,6 +8,7 @@ import { getDifficultyColor, hasQuest } from "@/lib/data";
 import { saveCode, getSavedCode, markProblemComplete } from "@/lib/progress";
 import { MathRenderer } from "@/components/MathRenderer";
 import { SideQuestModal } from "@/components/SideQuestModal";
+import PlaygroundViewer from "@/components/PlaygroundViewer";
 import { TestResultsPanel } from "@/components/TestResultsPanel";
 import { HiBookOpen, HiLightBulb, HiExclamationCircle, HiClock, HiTrash, HiChevronLeft, HiPlay, HiRefresh, HiSave } from "react-icons/hi";
 import { executeCode, isAuthenticated, TestResult, getHint, getSubmissions, SubmissionRecord, saveSubmission, deleteSubmission, getSolution } from "@/lib/api";
@@ -27,7 +28,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
     const [running, setRunning] = useState(false);
     const [sideQuestsOpen, setSideQuestsOpen] = useState(false);
     const [activeStep, setActiveStep] = useState(1);
-    const [activeTab, setActiveTab] = useState<"problem" | "solution">("problem");
+    const [activeTab, setActiveTab] = useState<"problem" | "solution" | "playground">("problem");
     const [showQuestModal, setShowQuestModal] = useState(false);
     const [learnOpen, setLearnOpen] = useState(false);
     const [hint, setHint] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
     const [problemSolved, setProblemSolved] = useState(false);
     const [solution, setSolution] = useState<string | null>(null);
     const [loadingSolution, setLoadingSolution] = useState(false);
+    const [showPlaygroundModal, setShowPlaygroundModal] = useState(false);
 
     // Load editor settings
     useEffect(() => {
@@ -345,6 +347,14 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                         >
                             [Solution] {problemSolved ? "✓" : "🔒"}
                         </button>
+                        {problem.playground_enabled && (
+                            <button
+                                onClick={() => setShowPlaygroundModal(true)}
+                                className="px-4 py-3 text-sm font-bold flex items-center gap-1 transition-colors text-purple-400 hover:text-purple-300 hover:bg-purple-400/10"
+                            >
+                                [Playground] ▶
+                            </button>
+                        )}
                     </div>
 
                     {/* Content */}
@@ -686,6 +696,37 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                         });
                     }}
                 />
+            )}
+
+            {/* Fullscreen Playground Modal */}
+            {showPlaygroundModal && problem?.playground_enabled && problem?.playground_code && (
+                <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
+                    {/* Modal Header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-700 bg-[#0d0d14]">
+                        <div className="flex items-center gap-3">
+                            <span className="text-purple-400 text-xl">▶</span>
+                            <div>
+                                <h2 className="text-lg font-bold text-purple-400">[Playground] {problem.title}</h2>
+                                <p className="text-sm text-gray-500">// Interactive algorithm visualization</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowPlaygroundModal(false)}
+                            className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white border-2 border-gray-700 hover:border-cyan-400 transition-colors"
+                        >
+                            [ESC] Close
+                        </button>
+                    </div>
+
+                    {/* Modal Content */}
+                    <div className="flex-1 overflow-auto p-4">
+                        <PlaygroundViewer
+                            code={problem.playground_code}
+                            title={problem.title}
+                            settings={{ editorHeight: 700, showEditor: false }}
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );

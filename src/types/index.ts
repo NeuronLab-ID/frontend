@@ -20,6 +20,8 @@ export interface Problem {
         test: string;
         expected_output: string;
     }[];
+    playground_enabled?: boolean;
+    playground_code?: string;
 }
 
 export interface SubQuest {
