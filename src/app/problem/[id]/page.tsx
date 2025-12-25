@@ -49,24 +49,28 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
 
     useEffect(() => {
         async function load() {
-            const paddedId = problemId.toString().padStart(4, "0");
-
-            // Load problem
-            const problemRes = await fetch(`/data/problems/problem_${paddedId}.json`);
-            if (problemRes.ok) {
-                const p = await problemRes.json();
+            // Load problem from backend API
+            try {
+                const { getProblem } = await import("@/lib/api");
+                const p = await getProblem(problemId);
                 setProblem({ ...p, id: problemId });
 
                 // Load saved code or use starter code
                 const saved = getSavedCode(problemId);
                 setCode(saved || p.starter_code || "");
+            } catch (error) {
+                console.error("Failed to load problem:", error);
             }
 
             // Load quest from API
             try {
                 const { getQuest, getQuestProgress } = await import("@/lib/api");
-                const questData = await getQuest(problemId);
-                setQuest({ ...questData, id: questData.problem_id } as Quest);
+                const response = await getQuest(problemId) as any;
+                // Handle new API format: {quest: {...}, source: "..."}
+                const questData = response.quest || response;
+                if (questData && questData.sub_quests) {
+                    setQuest({ ...questData, id: response.problem_id || problemId } as Quest);
+                }
 
                 try {
                     const progressData = await getQuestProgress(problemId);

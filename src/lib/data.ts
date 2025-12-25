@@ -1,29 +1,29 @@
 import { Problem, Quest } from "@/types";
 
-export async function getProblems(): Promise<Problem[]> {
-    const problems: Problem[] = [];
-
-    // Load all 270 problems
-    for (let i = 1; i <= 270; i++) {
-        try {
-            const paddedId = i.toString().padStart(4, "0");
-            const res = await fetch(`/data/problems/problem_${paddedId}.json`);
-            if (res.ok) {
-                const problem = await res.json();
-                problems.push(problem);
-            }
-        } catch {
-            // Skip missing problems
-        }
+// API base for backend
+const getApiBase = () => {
+    if (typeof window !== 'undefined') {
+        return `http://${window.location.hostname}:8000`;
     }
+    return 'http://localhost:8000';
+};
 
-    return problems;
+export async function getProblems(): Promise<Problem[]> {
+    try {
+        const res = await fetch(`${getApiBase()}/api/problems?limit=300`);
+        if (res.ok) {
+            const data = await res.json();
+            return data.problems || [];
+        }
+    } catch (error) {
+        console.error("Failed to fetch problems:", error);
+    }
+    return [];
 }
 
 export async function getProblem(id: number): Promise<Problem | null> {
     try {
-        const paddedId = id.toString().padStart(4, "0");
-        const res = await fetch(`/data/problems/problem_${paddedId}.json`);
+        const res = await fetch(`${getApiBase()}/api/problems/${id}`);
         if (!res.ok) return null;
         return res.json();
     } catch {
@@ -33,10 +33,10 @@ export async function getProblem(id: number): Promise<Problem | null> {
 
 export async function getQuest(id: number): Promise<Quest | null> {
     try {
-        const paddedId = id.toString().padStart(4, "0");
-        const res = await fetch(`/data/quests/quest_${paddedId}.json`);
+        const res = await fetch(`${getApiBase()}/api/quests/${id}`);
         if (!res.ok) return null;
-        return res.json();
+        const data = await res.json();
+        return data.quest || data;
     } catch {
         return null;
     }

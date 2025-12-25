@@ -139,13 +139,13 @@ export function MathSampleGenerator({ formulaName, formulaLatex, difficulty = "e
                     {sample && (
                         <div className="space-y-2">
                             {sample.steps.map((step, i) => (
-                                <div key={i} className="text-sm text-gray-300 border-l-2 border-gray-700 pl-3">
+                                <div key={i} className="text-sm text-gray-300 pl-3">
                                     <span className="text-gray-600 mr-2">{i + 1}.</span>
                                     <MathRenderer content={step} className="text-gray-200 inline" />
                                 </div>
                             ))}
 
-                            <div className="pt-3 mt-2 border-t-2 border-gray-700">
+                            <div className="pt-3 mt-2">
                                 <span className="text-xs text-green-400 font-bold">// Answer: </span>
                                 <MathRenderer content={sample.result} className="text-green-400 inline" />
                             </div>

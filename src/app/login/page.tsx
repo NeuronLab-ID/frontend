@@ -23,7 +23,14 @@ export default function LoginPage() {
         setError("");
         try {
             await login(email, password);
-            router.push("/problems");
+            // Check for redirect path from expired session
+            const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+            if (redirectPath) {
+                sessionStorage.removeItem('redirectAfterLogin');
+                router.push(redirectPath);
+            } else {
+                router.push("/problems");
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Login failed");
         } finally {

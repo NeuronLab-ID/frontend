@@ -2,7 +2,24 @@
  * API client for NeuronLab backend
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Dynamic API base - uses env var, or current hostname for same-network access
+const getApiBase = () => {
+    // 1. Use environment variable if set
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+    }
+
+    // 2. In browser, use current hostname (supports same-network access via 192.x.x.x)
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        return `http://${hostname}:8000`;
+    }
+
+    // 3. Fallback for SSR
+    return 'http://localhost:8000';
+};
+
+const API_BASE = getApiBase();
 
 // Token management
 let authToken: string | null = null;
@@ -61,6 +78,23 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+
+        // Check for token expiration/invalid token
+        const errorDetail = typeof error.detail === 'string' ? error.detail : '';
+        if (response.status === 401 ||
+            errorDetail.toLowerCase().includes('invalid') ||
+            errorDetail.toLowerCase().includes('expired') ||
+            errorDetail.toLowerCase().includes('token')) {
+            // Clear auth and redirect to login
+            logout();
+            if (typeof window !== 'undefined') {
+                // Store current path to redirect back after login
+                sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+                window.location.href = '/login';
+            }
+            throw new Error('Session expired. Please login again.');
+        }
+
         // Handle FastAPI validation errors which return detail as an array
         let errorMessage: string;
         if (Array.isArray(error.detail)) {
@@ -145,6 +179,11 @@ export interface ProblemSummary {
 
 export async function getProblems(page: number = 1, limit: number = 20): Promise<{ problems: ProblemSummary[]; total: number; page: number; limit: number }> {
     return apiRequest(`/api/problems?page=${page}&limit=${limit}`);
+}
+
+// Get single problem details
+export async function getProblem(problemId: number): Promise<any> {
+    return apiRequest(`/api/problems/${problemId}`);
 }
 
 // Request AI hint for error
