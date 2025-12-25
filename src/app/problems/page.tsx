@@ -63,12 +63,19 @@ export default function ProblemsPage() {
 
     const categories = [
         { name: "All", color: "gray" },
-        { name: "Linear Algebra", color: "cyan" },
-        { name: "Machine Learning", color: "purple" },
         { name: "Deep Learning", color: "pink" },
-        { name: "NLP", color: "yellow" },
-        { name: "Computer Vision", color: "green" },
-        { name: "Data Preprocessing", color: "orange" },
+        { name: "Machine Learning", color: "purple" },
+        { name: "Linear Algebra", color: "cyan" },
+        { name: "Reinforcement Learning", color: "green" },
+        { name: "Probability", color: "yellow" },
+        { name: "Computer Vision", color: "emerald" },
+        { name: "MLOps", color: "orange" },
+        { name: "Calculus", color: "blue" },
+        { name: "NLP", color: "rose" },
+        { name: "Statistics", color: "indigo" },
+        { name: "Optimization", color: "amber" },
+        { name: "Information Theory", color: "teal" },
+        { name: "Data Preprocessing", color: "lime" },
     ];
 
     const filteredProblems = problems.filter((p) => {
@@ -209,7 +216,7 @@ export default function ProblemsPage() {
                 {/* Main Content */}
                 <main className="flex-1 lg:ml-72 p-6">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center justify-between mb-4">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold">
                                 <span className="text-gray-500">&gt; </span>
@@ -219,6 +226,57 @@ export default function ProblemsPage() {
                             <p className="text-gray-500 font-mono text-sm mt-1">
                                 {filteredProblems.length} of {total} problems // Page {page}/{totalPages}
                             </p>
+                        </div>
+                    </div>
+
+                    {/* Mobile Filters - Show only when sidebar is hidden */}
+                    <div className="lg:hidden mb-6 border-2 border-gray-700 bg-[#1a1a2e]/50 p-4">
+                        <div className="flex flex-wrap items-center gap-3">
+                            {/* Category Dropdown */}
+                            <select
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                className="bg-[#0d0d14] border border-gray-600 text-cyan-400 font-mono text-xs px-2 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
+                            >
+                                {categories.map((cat) => (
+                                    <option key={cat.name} value={cat.name}>
+                                        {cat.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Difficulty Dropdown */}
+                            <select
+                                value={difficulty.length === 0 ? "all" : difficulty.length === 1 ? difficulty[0] : "mixed"}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "all") {
+                                        setDifficulty([]);
+                                    } else if (val === "mixed") {
+                                        // Keep current selection
+                                    } else {
+                                        setDifficulty([val]);
+                                    }
+                                }}
+                                className="bg-[#0d0d14] border border-gray-600 text-purple-400 font-mono text-xs px-2 py-1.5 focus:outline-none focus:border-purple-400 cursor-pointer"
+                            >
+                                <option value="all">All Levels</option>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+
+                            {/* Quest Filter Toggle */}
+                            <button
+                                onClick={() => setShowQuestsOnly(!showQuestsOnly)}
+                                className={`flex items-center gap-1.5 px-2 py-1.5 text-xs font-mono border transition-all ${showQuestsOnly
+                                        ? "border-yellow-400 bg-yellow-400/20 text-yellow-400"
+                                        : "border-gray-600 text-gray-500 hover:border-gray-500"
+                                    }`}
+                            >
+                                <HiStar className="w-3.5 h-3.5" />
+                                Quest
+                            </button>
                         </div>
                     </div>
 
