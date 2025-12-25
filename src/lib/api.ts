@@ -177,8 +177,12 @@ export interface ProblemSummary {
     difficulty: string;
 }
 
-export async function getProblems(page: number = 1, limit: number = 20): Promise<{ problems: ProblemSummary[]; total: number; page: number; limit: number }> {
-    return apiRequest(`/api/problems?page=${page}&limit=${limit}`);
+export async function getProblems(page: number = 1, limit: number = 20, category?: string): Promise<{ problems: ProblemSummary[]; total: number; page: number; limit: number }> {
+    let url = `/api/problems?page=${page}&limit=${limit}`;
+    if (category) {
+        url += `&category=${encodeURIComponent(category)}`;
+    }
+    return apiRequest(url);
 }
 
 // Get single problem details

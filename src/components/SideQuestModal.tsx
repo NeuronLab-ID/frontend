@@ -157,7 +157,7 @@ export function SideQuestModal({
             />
 
             {/* Modal */}
-            <div className="relative bg-[#0d0d14] border-2 border-gray-700 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="relative bg-[#0d0d14] border-2 border-gray-700 w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
                 {/* Header - Terminal Style */}
                 <div className="flex items-center justify-between p-4 border-b-2 border-gray-700 bg-[#1a1a2e]">
                     <div className="flex items-center gap-3">
@@ -227,7 +227,7 @@ export function SideQuestModal({
                                     <div key={i} className="border-2 border-cyan-400/30 bg-[#1a1a2e] p-4">
                                         <p className="text-sm font-bold text-cyan-400 mb-1">[{formula.name}]</p>
                                         <MathRenderer content={formula.latex} className="text-gray-200" />
-                                        <p className="text-xs text-gray-500 mt-2">// {formula.description}</p>
+                                        <p className="text-xs text-gray-500 mt-2">// <MathRenderer content={formula.description} className="inline" /></p>
                                         <MathSampleGenerator key={`${quest.step}-${formula.name}`} formulaName={formula.name} formulaLatex={formula.latex} />
                                     </div>
                                 ))}
@@ -242,7 +242,7 @@ export function SideQuestModal({
 
                             {/* Exercise description */}
                             <div className="border-2 border-yellow-400/30 bg-yellow-400/5 p-4">
-                                <p className="text-yellow-200 text-sm">{quest.exercise.description}</p>
+                                <MathRenderer content={quest.exercise.description} className="text-yellow-200 text-sm" />
                             </div>
 
                             {/* Function signature */}

@@ -43,7 +43,9 @@ export default function ProblemsPage() {
         async function loadProblems() {
             setLoading(true);
             try {
-                const res = await getProblems(page, ITEMS_PER_PAGE);
+                // Pass category to API (use undefined for "All" to fetch all categories)
+                const categoryFilter = category === "All" ? undefined : category;
+                const res = await getProblems(page, ITEMS_PER_PAGE, categoryFilter);
                 setProblems(res.problems);
                 setTotal(res.total);
             } catch (error) {
@@ -52,7 +54,7 @@ export default function ProblemsPage() {
             setLoading(false);
         }
         loadProblems();
-    }, [page]);
+    }, [page, category]);
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -70,8 +72,8 @@ export default function ProblemsPage() {
     ];
 
     const filteredProblems = problems.filter((p) => {
+        // Category filter is handled by API, only apply local filters
         if (search && !p.title.toLowerCase().includes(search.toLowerCase())) return false;
-        if (category !== "All" && p.category !== category) return false;
         if (difficulty.length > 0 && !difficulty.includes(p.difficulty)) return false;
         if (showQuestsOnly && !hasQuest(p.id)) return false;
         return true;
