@@ -267,6 +267,77 @@ export async function getQuestProgress(problemId: number): Promise<QuestProgress
     return apiRequest<QuestProgressResponse>(`/api/quest/progress/${problemId}`);
 }
 
+// Full problem reasoning
+export interface FullReasoningStep {
+    step: number;
+    title: string;
+    reasoning: string;
+}
+
+export interface FullReasoningData {
+    steps: FullReasoningStep[];
+    summary: string;
+}
+
+export interface CachedReasoningResponse {
+    exists: boolean;
+    data: FullReasoningData | null;
+    created_at?: string;
+}
+
+export async function getCachedFullReasoning(problemId: number): Promise<CachedReasoningResponse> {
+    return apiRequest<CachedReasoningResponse>(`/api/quest/full-reasoning/${problemId}`);
+}
+
+export type ReasoningStreamEvent =
+    | { type: 'step'; data: FullReasoningStep }
+    | { type: 'summary'; data: string }
+    | { type: 'done'; cached: boolean }
+    | { type: 'error'; message: string };
+
+export async function* streamFullReasoning(problemId: number): AsyncGenerator<ReasoningStreamEvent> {
+    const token = getAuthToken();
+    const API_BASE = typeof window !== 'undefined'
+        ? `http://${window.location.hostname}:8000`
+        : 'http://localhost:8000';
+
+    const response = await fetch(`${API_BASE}/api/quest/full-reasoning/${problemId}/stream`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to stream reasoning: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                try {
+                    const event = JSON.parse(line.slice(6)) as ReasoningStreamEvent;
+                    yield event;
+                } catch {
+                    // Skip invalid JSON
+                }
+            }
+        }
+    }
+}
+
 // Submission history
 export interface SubmissionRecord {
     id: number;

@@ -9,6 +9,7 @@ import { saveCode, getSavedCode, markProblemComplete } from "@/lib/progress";
 import { MathRenderer } from "@/components/MathRenderer";
 import { SideQuestModal } from "@/components/SideQuestModal";
 import PlaygroundViewer from "@/components/PlaygroundViewer";
+import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { TestResultsPanel } from "@/components/TestResultsPanel";
 import { HiBookOpen, HiLightBulb, HiExclamationCircle, HiClock, HiTrash, HiChevronLeft, HiPlay, HiRefresh, HiSave } from "react-icons/hi";
 import { executeCode, isAuthenticated, TestResult, getHint, getSubmissions, SubmissionRecord, saveSubmission, deleteSubmission, getSolution } from "@/lib/api";
@@ -28,7 +29,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
     const [running, setRunning] = useState(false);
     const [sideQuestsOpen, setSideQuestsOpen] = useState(false);
     const [activeStep, setActiveStep] = useState(1);
-    const [activeTab, setActiveTab] = useState<"problem" | "solution" | "playground">("problem");
+    const [activeTab, setActiveTab] = useState<"problem" | "solution" | "playground" | "reasoning">("problem");
     const [showQuestModal, setShowQuestModal] = useState(false);
     const [learnOpen, setLearnOpen] = useState(false);
     const [hint, setHint] = useState<string | null>(null);
@@ -355,6 +356,17 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                                 [Playground] ▶
                             </button>
                         )}
+                        {quest && (
+                            <button
+                                onClick={() => setActiveTab("reasoning")}
+                                className={`px-4 py-3 text-sm font-bold flex items-center gap-1 transition-colors ${activeTab === "reasoning"
+                                    ? "text-purple-400 border-b-2 border-purple-400 -mb-[2px]"
+                                    : "text-purple-400/60 hover:text-purple-400"
+                                    }`}
+                            >
+                                [Reasoning] 🧠
+                            </button>
+                        )}
                     </div>
 
                     {/* Content */}
@@ -513,6 +525,13 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                                     <p className="text-gray-500">// Solve the problem to unlock</p>
                                 </div>
                             )
+                        )}
+
+                        {activeTab === "reasoning" && quest && (
+                            <ReasoningPanel
+                                problemId={problemId}
+                                totalSteps={quest.sub_quests?.length || 0}
+                            />
                         )}
                     </div>
                 </div>

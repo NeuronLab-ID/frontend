@@ -286,7 +286,7 @@ export function SideQuestModal({
                                     <div key={i} className="border-2 border-cyan-400/30 bg-[#1a1a2e] p-4">
                                         <p className="text-sm font-bold text-cyan-400 mb-1">[{formula.name}]</p>
                                         <MathRenderer content={formula.latex} className="text-gray-200" />
-                                        <p className="text-xs text-gray-500 mt-2">// <MathRenderer content={formula.description} className="inline" /></p>
+                                        <p className="text-xs text-gray-500 mt-2">// <MathRenderer content={formula.description} className="inline" inline={true} /></p>
                                         <MathSampleGenerator key={`${quest.step}-${formula.name}`} formulaName={formula.name} formulaLatex={formula.latex} />
                                     </div>
                                 ))}

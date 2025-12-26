@@ -7,10 +7,11 @@ import "katex/dist/katex.min.css";
 interface MathRendererProps {
     content: string;
     className?: string;
+    inline?: boolean;
 }
 
-export function MathRenderer({ content, className = "" }: MathRendererProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
+export function MathRenderer({ content, className = "", inline = false }: MathRendererProps) {
+    const containerRef = useRef<HTMLSpanElement | HTMLDivElement>(null);
 
     useEffect(() => {
         if (!containerRef.current || !content) return;
@@ -21,26 +22,26 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
         // Render display math ($$...$$ or \[...\])
         processedContent = processedContent.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
             try {
-                return `<div class="my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
+                return `<span class="block my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
                     displayMode: true,
                     throwOnError: false,
                     trust: true,
-                })}</div>`;
+                })}</span>`;
             } catch {
-                return `<pre class="text-red-400">${latex}</pre>`;
+                return `<code class="text-red-400">${latex}</code>`;
             }
         });
 
         // Render display math with \[...\]
         processedContent = processedContent.replace(/\\\[([\s\S]+?)\\\]/g, (_, latex) => {
             try {
-                return `<div class="my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
+                return `<span class="block my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
                     displayMode: true,
                     throwOnError: false,
                     trust: true,
-                })}</div>`;
+                })}</span>`;
             } catch {
-                return `<pre class="text-red-400">${latex}</pre>`;
+                return `<code class="text-red-400">${latex}</code>`;
             }
         });
 
@@ -71,8 +72,8 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
         });
 
         // Convert markdown-style headers
-        processedContent = processedContent.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold mt-6 mb-2 text-white">$1</h3>');
-        processedContent = processedContent.replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-white">$1</h2>');
+        processedContent = processedContent.replace(/^### (.+)$/gm, '<span class="block text-lg font-semibold mt-6 mb-2 text-white">$1</span>');
+        processedContent = processedContent.replace(/^## (.+)$/gm, '<span class="block text-xl font-bold mt-6 mb-3 text-white">$1</span>');
 
         // Convert **bold** to <strong>
         processedContent = processedContent.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white">$1</strong>');
@@ -84,7 +85,10 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
         containerRef.current.innerHTML = processedContent;
     }, [content]);
 
-    return <div ref={containerRef} className={`math-content ${className}`} />;
+    if (inline) {
+        return <span ref={containerRef as React.RefObject<HTMLSpanElement>} className={`math-content ${className}`} />;
+    }
+    return <div ref={containerRef as React.RefObject<HTMLDivElement>} className={`math-content ${className}`} />;
 }
 
 // Simple inline math renderer for single formulas
