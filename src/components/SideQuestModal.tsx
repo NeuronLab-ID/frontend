@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { SubQuest } from "@/types";
 import { MathRenderer } from "@/components/MathRenderer";
-import { HiLightBulb, HiExclamation, HiSparkles, HiCheck, HiChevronLeft, HiChevronRight, HiPlay } from "react-icons/hi";
-import { executeQuestCode, getQuestHint, saveQuestProgress, isAuthenticated, QuestStepProgress } from "@/lib/api";
+import { HiLightBulb, HiExclamation, HiSparkles, HiCheck, HiChevronLeft, HiChevronRight, HiPlay, HiChevronDown, HiChevronUp } from "react-icons/hi";
+import { executeQuestCode, getQuestHint, generateTestCaseReasoning, saveQuestProgress, isAuthenticated, QuestStepProgress } from "@/lib/api";
 import { MathSampleGenerator } from "@/components/MathSampleGenerator";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -47,6 +47,14 @@ export function SideQuestModal({
     const [loadingAiHint, setLoadingAiHint] = useState(false);
     const [lastError, setLastError] = useState<string | null>(null);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [reasoningStates, setReasoningStates] = useState<{
+        [key: number]: {
+            loading: boolean;
+            expanded: boolean;
+            data: { input: string; process: string; output: string } | null;
+        };
+    }>({});
+
 
     const prevStepRef = useRef(quest.step);
     const savedProgress = completedSteps.find(p => p.step === quest.step);
@@ -145,6 +153,57 @@ export function SideQuestModal({
             setAiHint(`Failed to get hint: ${error instanceof Error ? error.message : "Unknown error"}`);
         } finally {
             setLoadingAiHint(false);
+        }
+    };
+
+    const handleGenerateReasoning = async (testCaseIndex: number, testCase: { input: string; expected: string }) => {
+        // Toggle if already has data
+        if (reasoningStates[testCaseIndex]?.data) {
+            setReasoningStates(prev => ({
+                ...prev,
+                [testCaseIndex]: {
+                    ...prev[testCaseIndex],
+                    expanded: !prev[testCaseIndex]?.expanded
+                }
+            }));
+            return;
+        }
+
+        // Start loading
+        setReasoningStates(prev => ({
+            ...prev,
+            [testCaseIndex]: { loading: true, expanded: true, data: null }
+        }));
+
+        try {
+            const result = await generateTestCaseReasoning(
+                problemId,
+                quest.step,
+                testCase.input,
+                testCase.expected,
+                quest.exercise?.function_signature || ""
+            );
+            setReasoningStates(prev => ({
+                ...prev,
+                [testCaseIndex]: {
+                    loading: false,
+                    expanded: true,
+                    data: result
+                }
+            }));
+        } catch (error) {
+            setReasoningStates(prev => ({
+                ...prev,
+                [testCaseIndex]: {
+                    loading: false,
+                    expanded: true,
+                    data: {
+                        input: `Failed to generate: ${error instanceof Error ? error.message : "Unknown error"}`,
+                        process: "",
+                        output: ""
+                    }
+                }
+            }));
         }
     };
 
@@ -375,6 +434,50 @@ export function SideQuestModal({
                                                             <p className="text-red-400 text-xs">// Error: {apiResults[i].error}</p>
                                                         )}
                                                     </div>
+                                                    {/* Generate Reasoning Button */}
+                                                    <button
+                                                        onClick={() => handleGenerateReasoning(i, tc)}
+                                                        className="mt-2 flex items-center gap-1 px-2 py-1 text-xs border border-purple-400/50 text-purple-400 hover:bg-purple-400/10 transition-colors"
+                                                    >
+                                                        <HiSparkles className="w-3 h-3" />
+                                                        {reasoningStates[i]?.loading ? "Generating..." : reasoningStates[i]?.expanded ? "Hide Reasoning" : "Generate Reasoning"}
+                                                        {reasoningStates[i]?.data && (
+                                                            reasoningStates[i]?.expanded ? <HiChevronUp className="w-3 h-3" /> : <HiChevronDown className="w-3 h-3" />
+                                                        )}
+                                                    </button>
+                                                    {/* Reasoning Panel */}
+                                                    {reasoningStates[i]?.expanded && reasoningStates[i]?.data && (
+                                                        <div className="mt-3 space-y-2 border-l-2 border-purple-400/30 pl-3">
+                                                            {/* Input Section */}
+                                                            <div className="bg-[#0d0d14] p-2 border border-blue-400/30">
+                                                                <p className="text-xs font-bold text-blue-400 mb-1 flex items-center gap-1">
+                                                                    <span className="text-blue-400">▸</span> INPUT
+                                                                </p>
+                                                                <MathRenderer content={reasoningStates[i].data.input} className="text-xs text-gray-300" />
+                                                            </div>
+                                                            {/* Process Section */}
+                                                            <div className="bg-[#0d0d14] p-2 border border-yellow-400/30">
+                                                                <p className="text-xs font-bold text-yellow-400 mb-1 flex items-center gap-1">
+                                                                    <span className="text-yellow-400">▸</span> PROCESS
+                                                                </p>
+                                                                <MathRenderer content={reasoningStates[i].data.process} className="text-xs text-gray-300" />
+                                                            </div>
+                                                            {/* Output Section */}
+                                                            <div className="bg-[#0d0d14] p-2 border border-green-400/30">
+                                                                <p className="text-xs font-bold text-green-400 mb-1 flex items-center gap-1">
+                                                                    <span className="text-green-400">▸</span> OUTPUT
+                                                                </p>
+                                                                <MathRenderer content={reasoningStates[i].data.output} className="text-xs text-gray-300" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {/* Loading state */}
+                                                    {reasoningStates[i]?.loading && (
+                                                        <div className="mt-3 flex items-center gap-2 text-purple-400 text-xs">
+                                                            <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                                                            Analyzing test case...
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

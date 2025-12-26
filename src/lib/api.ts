@@ -218,6 +218,32 @@ export async function getQuestHint(problemId: number, step: number, code: string
     });
 }
 
+// Generate reasoning for test case
+export interface TestCaseReasoningResponse {
+    input: string;
+    process: string;
+    output: string;
+}
+
+export async function generateTestCaseReasoning(
+    problemId: number,
+    step: number,
+    testInput: string,
+    expectedOutput: string,
+    functionSignature: string
+): Promise<TestCaseReasoningResponse> {
+    return apiRequest<TestCaseReasoningResponse>('/api/quest/reasoning', {
+        method: 'POST',
+        body: JSON.stringify({
+            problem_id: problemId,
+            step,
+            test_input: testInput,
+            expected_output: expectedOutput,
+            function_signature: functionSignature
+        }),
+    });
+}
+
 // Quest progress
 export interface QuestStepProgress {
     step: number;

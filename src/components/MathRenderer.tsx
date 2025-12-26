@@ -18,8 +18,21 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
         // Process the content to render LaTeX
         let processedContent = content;
 
-        // Render display math ($$...$$)
+        // Render display math ($$...$$ or \[...\])
         processedContent = processedContent.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
+            try {
+                return `<div class="my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
+                    displayMode: true,
+                    throwOnError: false,
+                    trust: true,
+                })}</div>`;
+            } catch {
+                return `<pre class="text-red-400">${latex}</pre>`;
+            }
+        });
+
+        // Render display math with \[...\]
+        processedContent = processedContent.replace(/\\\[([\s\S]+?)\\\]/g, (_, latex) => {
             try {
                 return `<div class="my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
                     displayMode: true,
@@ -33,6 +46,19 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
 
         // Render inline math ($...$)
         processedContent = processedContent.replace(/\$([^$\n]+?)\$/g, (_, latex) => {
+            try {
+                return katex.renderToString(latex.trim(), {
+                    displayMode: false,
+                    throwOnError: false,
+                    trust: true,
+                });
+            } catch {
+                return `<code class="text-red-400">${latex}</code>`;
+            }
+        });
+
+        // Render inline math with \(...\) - use lazy match up to \)
+        processedContent = processedContent.replace(/\\\(([\s\S]+?)\\\)/g, (_, latex) => {
             try {
                 return katex.renderToString(latex.trim(), {
                     displayMode: false,
