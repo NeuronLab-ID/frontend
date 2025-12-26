@@ -19,10 +19,24 @@ export function MathRenderer({ content, className = "", inline = false }: MathRe
         // Process the content to render LaTeX
         let processedContent = content;
 
+        // Helper function to escape underscores in \text{} blocks for KaTeX
+        const escapeTextUnderscores = (latex: string): string => {
+            // Replace underscores in \text{...} with \_
+            return latex.replace(/\\text\{([^}]*)\}/g, (match, text) => {
+                // Replace underscores with escaped underscores
+                const escapedText = text.replace(/_/g, '\\_');
+                return `\\text{${escapedText}}`;
+            }).replace(/\\texttt\{([^}]*)\}/g, (match, text) => {
+                const escapedText = text.replace(/_/g, '\\_');
+                return `\\texttt{${escapedText}}`;
+            });
+        };
+
         // Render display math ($$...$$ or \[...\])
         processedContent = processedContent.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
             try {
-                return `<span class="block my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
+                const escapedLatex = escapeTextUnderscores(latex.trim());
+                return `<span class="block my-4 overflow-x-auto">${katex.renderToString(escapedLatex, {
                     displayMode: true,
                     throwOnError: false,
                     trust: true,
@@ -35,7 +49,8 @@ export function MathRenderer({ content, className = "", inline = false }: MathRe
         // Render display math with \[...\]
         processedContent = processedContent.replace(/\\\[([\s\S]+?)\\\]/g, (_, latex) => {
             try {
-                return `<span class="block my-4 overflow-x-auto">${katex.renderToString(latex.trim(), {
+                const escapedLatex = escapeTextUnderscores(latex.trim());
+                return `<span class="block my-4 overflow-x-auto">${katex.renderToString(escapedLatex, {
                     displayMode: true,
                     throwOnError: false,
                     trust: true,
@@ -48,7 +63,8 @@ export function MathRenderer({ content, className = "", inline = false }: MathRe
         // Render inline math ($...$)
         processedContent = processedContent.replace(/\$([^$\n]+?)\$/g, (_, latex) => {
             try {
-                return katex.renderToString(latex.trim(), {
+                const escapedLatex = escapeTextUnderscores(latex.trim());
+                return katex.renderToString(escapedLatex, {
                     displayMode: false,
                     throwOnError: false,
                     trust: true,
@@ -61,7 +77,8 @@ export function MathRenderer({ content, className = "", inline = false }: MathRe
         // Render inline math with \(...\) - use lazy match up to \)
         processedContent = processedContent.replace(/\\\(([\s\S]+?)\\\)/g, (_, latex) => {
             try {
-                return katex.renderToString(latex.trim(), {
+                const escapedLatex = escapeTextUnderscores(latex.trim());
+                return katex.renderToString(escapedLatex, {
                     displayMode: false,
                     throwOnError: false,
                     trust: true,
@@ -71,12 +88,26 @@ export function MathRenderer({ content, className = "", inline = false }: MathRe
             }
         });
 
-        // Convert markdown-style headers
-        processedContent = processedContent.replace(/^### (.+)$/gm, '<span class="block text-lg font-semibold mt-6 mb-2 text-white">$1</span>');
+        // Convert code blocks (```python ... ``` or ``` ... ```)
+        processedContent = processedContent.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+            const langClass = lang ? `language-${lang}` : '';
+            return `<pre class="bg-[#0a0a0f] border border-gray-700 p-3 my-3 overflow-x-auto text-sm ${langClass}"><code class="text-cyan-300">${code.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+        });
+
+        // Convert inline code (`...`)
+        processedContent = processedContent.replace(/`([^`]+)`/g, '<code class="bg-gray-800 text-cyan-400 px-1 py-0.5 text-sm">$1</code>');
+
+        // Convert markdown-style headers (order matters - more # first)
+        processedContent = processedContent.replace(/^#### (.+)$/gm, '<span class="block text-base font-semibold mt-4 mb-2 text-purple-400">$1</span>');
+        processedContent = processedContent.replace(/^### (.+)$/gm, '<span class="block text-lg font-semibold mt-5 mb-2 text-cyan-400">$1</span>');
         processedContent = processedContent.replace(/^## (.+)$/gm, '<span class="block text-xl font-bold mt-6 mb-3 text-white">$1</span>');
 
         // Convert **bold** to <strong>
         processedContent = processedContent.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white">$1</strong>');
+
+        // Convert bullet points
+        processedContent = processedContent.replace(/^- (.+)$/gm, '<span class="block ml-4">• $1</span>');
+        processedContent = processedContent.replace(/^\d+\. (.+)$/gm, '<span class="block ml-4 text-gray-300">$&</span>');
 
         // Convert newlines to <br> for better readability
         processedContent = processedContent.replace(/\n\n/g, '<br/><br/>');

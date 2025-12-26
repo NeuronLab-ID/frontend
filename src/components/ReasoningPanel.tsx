@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MathRenderer } from "@/components/MathRenderer";
-import { HiSparkles, HiCheck, HiRefresh } from "react-icons/hi";
+import { HiSparkles, HiCheck, HiRefresh, HiExclamationCircle } from "react-icons/hi";
 import { streamFullReasoning, getCachedFullReasoning, FullReasoningStep, isAuthenticated } from "@/lib/api";
 
 interface ReasoningPanelProps {
@@ -38,7 +38,7 @@ export function ReasoningPanel({ problemId, totalSteps }: ReasoningPanelProps) {
         checkCached();
     }, [problemId]);
 
-    const handleGenerate = async () => {
+    const handleGenerate = async (force: boolean = false) => {
         if (!isAuthenticated()) {
             setError("Please login to generate reasoning");
             return;
@@ -49,9 +49,10 @@ export function ReasoningPanel({ problemId, totalSteps }: ReasoningPanelProps) {
         setSteps([]);
         setSummary("");
         setCurrentStep(0);
+        setIsCached(false);
 
         try {
-            for await (const event of streamFullReasoning(problemId)) {
+            for await (const event of streamFullReasoning(problemId, force)) {
                 if (event.type === 'step') {
                     setSteps(prev => [...prev, event.data]);
                     setCurrentStep(event.data.step);
@@ -71,6 +72,10 @@ export function ReasoningPanel({ problemId, totalSteps }: ReasoningPanelProps) {
         }
     };
 
+    const handleRegenerate = () => {
+        handleGenerate(true);  // Force regenerate
+    };
+
     return (
         <div className="space-y-4">
             {/* Header */}
@@ -86,10 +91,24 @@ export function ReasoningPanel({ problemId, totalSteps }: ReasoningPanelProps) {
                 )}
             </div>
 
+            {/* Description */}
+            {!hasGenerated && !loading && (
+                <div className="border-l-2 border-purple-400/50 pl-4 py-2 bg-purple-400/5">
+                    <p className="text-sm text-gray-400">
+                        Generate a step-by-step mathematical reasoning path that explains how each quest step
+                        contributes to solving the overall problem. The AI will analyze each step sequentially
+                        and provide a comprehensive explanation with formulas.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                        // Reasoning is generated once and cached for future visits
+                    </p>
+                </div>
+            )}
+
             {/* Generate Button */}
             {!hasGenerated && !loading && (
                 <button
-                    onClick={handleGenerate}
+                    onClick={() => handleGenerate(false)}
                     className="w-full py-4 border-2 border-purple-400 bg-purple-400/10 hover:bg-purple-400 hover:text-black font-bold text-purple-400 transition-all flex items-center justify-center gap-2"
                 >
                     <HiSparkles className="w-5 h-5" />
@@ -100,7 +119,7 @@ export function ReasoningPanel({ problemId, totalSteps }: ReasoningPanelProps) {
             {/* Regenerate Button */}
             {hasGenerated && !loading && (
                 <button
-                    onClick={handleGenerate}
+                    onClick={handleRegenerate}
                     className="flex items-center gap-2 px-3 py-1 text-xs border border-gray-600 text-gray-400 hover:border-purple-400 hover:text-purple-400 transition-colors"
                 >
                     <HiRefresh className="w-3 h-3" />
@@ -110,8 +129,9 @@ export function ReasoningPanel({ problemId, totalSteps }: ReasoningPanelProps) {
 
             {/* Error */}
             {error && (
-                <div className="border-2 border-red-400/30 bg-red-400/5 p-3 text-red-400 text-sm">
-                    ❌ {error}
+                <div className="border-2 border-red-400/30 bg-red-400/5 p-3 text-red-400 text-sm flex items-center gap-2">
+                    <HiExclamationCircle className="w-4 h-4 flex-shrink-0" />
+                    {error}
                 </div>
             )}
 

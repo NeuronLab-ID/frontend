@@ -11,7 +11,7 @@ import { SideQuestModal } from "@/components/SideQuestModal";
 import PlaygroundViewer from "@/components/PlaygroundViewer";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { TestResultsPanel } from "@/components/TestResultsPanel";
-import { HiBookOpen, HiLightBulb, HiExclamationCircle, HiClock, HiTrash, HiChevronLeft, HiPlay, HiRefresh, HiSave } from "react-icons/hi";
+import { HiBookOpen, HiLightBulb, HiExclamationCircle, HiClock, HiTrash, HiChevronLeft, HiPlay, HiRefresh, HiSave, HiSparkles } from "react-icons/hi";
 import { executeCode, isAuthenticated, TestResult, getHint, getSubmissions, SubmissionRecord, saveSubmission, deleteSubmission, getSolution } from "@/lib/api";
 import { getEditorSettings, getMonacoTheme, EditorSettings, defineMonacoThemes } from "@/lib/settings";
 
@@ -29,7 +29,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
     const [running, setRunning] = useState(false);
     const [sideQuestsOpen, setSideQuestsOpen] = useState(false);
     const [activeStep, setActiveStep] = useState(1);
-    const [activeTab, setActiveTab] = useState<"problem" | "solution" | "playground" | "reasoning">("problem");
+    const [activeTab, setActiveTab] = useState<"problem" | "solution" | "playground">("problem");
     const [showQuestModal, setShowQuestModal] = useState(false);
     const [learnOpen, setLearnOpen] = useState(false);
     const [hint, setHint] = useState<string | null>(null);
@@ -44,6 +44,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
     const [solution, setSolution] = useState<string | null>(null);
     const [loadingSolution, setLoadingSolution] = useState(false);
     const [showPlaygroundModal, setShowPlaygroundModal] = useState(false);
+    const [showReasoningModal, setShowReasoningModal] = useState(false);
 
     // Load editor settings
     useEffect(() => {
@@ -358,13 +359,11 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                         )}
                         {quest && (
                             <button
-                                onClick={() => setActiveTab("reasoning")}
-                                className={`px-4 py-3 text-sm font-bold flex items-center gap-1 transition-colors ${activeTab === "reasoning"
-                                    ? "text-purple-400 border-b-2 border-purple-400 -mb-[2px]"
-                                    : "text-purple-400/60 hover:text-purple-400"
-                                    }`}
+                                onClick={() => setShowReasoningModal(true)}
+                                className="px-4 py-3 text-sm font-bold flex items-center gap-1 transition-colors text-purple-400 hover:text-purple-300 hover:bg-purple-400/10"
                             >
-                                [Reasoning] 🧠
+                                <HiSparkles className="w-4 h-4" />
+                                [Reasoning]
                             </button>
                         )}
                     </div>
@@ -527,12 +526,6 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                             )
                         )}
 
-                        {activeTab === "reasoning" && quest && (
-                            <ReasoningPanel
-                                problemId={problemId}
-                                totalSteps={quest.sub_quests?.length || 0}
-                            />
-                        )}
                     </div>
                 </div>
 
@@ -743,6 +736,36 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                             code={problem.playground_code}
                             title={problem.title}
                             settings={{ editorHeight: 700, showEditor: false }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Fullscreen Reasoning Modal */}
+            {showReasoningModal && quest && (
+                <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
+                    {/* Modal Header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-700 bg-[#0d0d14]">
+                        <div className="flex items-center gap-3">
+                            <HiSparkles className="text-purple-400 text-xl" />
+                            <div>
+                                <h2 className="text-lg font-bold text-purple-400">[Reasoning] {problem?.title}</h2>
+                                <p className="text-sm text-gray-500">// Step-by-step mathematical solution path</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowReasoningModal(false)}
+                            className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white border-2 border-gray-700 hover:border-purple-400 transition-colors"
+                        >
+                            [ESC] Close
+                        </button>
+                    </div>
+
+                    {/* Modal Content */}
+                    <div className="flex-1 overflow-auto p-6">
+                        <ReasoningPanel
+                            problemId={problemId}
+                            totalSteps={quest.sub_quests?.length || 0}
                         />
                     </div>
                 </div>

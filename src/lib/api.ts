@@ -295,13 +295,14 @@ export type ReasoningStreamEvent =
     | { type: 'done'; cached: boolean }
     | { type: 'error'; message: string };
 
-export async function* streamFullReasoning(problemId: number): AsyncGenerator<ReasoningStreamEvent> {
+export async function* streamFullReasoning(problemId: number, force: boolean = false): AsyncGenerator<ReasoningStreamEvent> {
     const token = getAuthToken();
     const API_BASE = typeof window !== 'undefined'
         ? `http://${window.location.hostname}:8000`
         : 'http://localhost:8000';
 
-    const response = await fetch(`${API_BASE}/api/quest/full-reasoning/${problemId}/stream`, {
+    const url = `${API_BASE}/api/quest/full-reasoning/${problemId}/stream${force ? '?force=true' : ''}`;
+    const response = await fetch(url, {
         headers: {
             'Authorization': `Bearer ${token}`,
         },
