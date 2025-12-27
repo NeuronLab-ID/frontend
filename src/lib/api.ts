@@ -293,15 +293,23 @@ export type ReasoningStreamEvent =
     | { type: 'step'; data: FullReasoningStep }
     | { type: 'summary'; data: string }
     | { type: 'done'; cached: boolean }
-    | { type: 'error'; message: string };
+    | { type: 'error'; message: string }
+    | { type: 'search'; data: { step: number; topic: string } }
+    | { type: 'search_complete'; data: { chars: number } };
 
-export async function* streamFullReasoning(problemId: number, force: boolean = false): AsyncGenerator<ReasoningStreamEvent> {
+export async function* streamFullReasoning(problemId: number, force: boolean = false, usePerplexity: boolean = false, usePerplexityReasoning: boolean = false): AsyncGenerator<ReasoningStreamEvent> {
     const token = getAuthToken();
     const API_BASE = typeof window !== 'undefined'
         ? `http://${window.location.hostname}:8000`
         : 'http://localhost:8000';
 
-    const url = `${API_BASE}/api/quest/full-reasoning/${problemId}/stream${force ? '?force=true' : ''}`;
+    const params = new URLSearchParams();
+    if (force) params.append('force', 'true');
+    if (usePerplexity) params.append('usePerplexity', 'true');
+    if (usePerplexityReasoning) params.append('usePerplexityReasoning', 'true');
+    const queryString = params.toString();
+
+    const url = `${API_BASE}/api/quest/full-reasoning/${problemId}/stream${queryString ? '?' + queryString : ''}`;
     const response = await fetch(url, {
         headers: {
             'Authorization': `Bearer ${token}`,
