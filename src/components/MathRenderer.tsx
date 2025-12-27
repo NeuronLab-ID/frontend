@@ -19,6 +19,64 @@ export function MathRenderer({ content, className = "", inline = false }: MathRe
         // Process the content to render LaTeX
         let processedContent = content;
 
+        // Normalize escape sequences from Perplexity API (\\\\( -> $, \\\\[ -> $$)
+        const normalizeEscapes = (text: string): string => {
+            let r = text;
+            r = r.split('\\\\n').join('\n');
+            r = r.split('\\\\\\\\[').join('$$');
+            r = r.split('\\\\\\\\]').join('$$');
+            r = r.split('\\\\[').join('$$');
+            r = r.split('\\\\]').join('$$');
+            r = r.split('\\\\\\\\(').join('$');
+            r = r.split('\\\\\\\\)').join('$');
+            r = r.split('\\\\(').join('$');
+            r = r.split('\\\\)').join('$');
+            return r;
+        };
+        processedContent = normalizeEscapes(processedContent);
+
+        // Helper to render inline KaTeX
+        const renderInlineKatex = (text: string): string => {
+            return text.replace(/\$([^$\n]+?)\$/g, (_: string, latex: string) => {
+                try {
+                    return katex.renderToString(latex.trim(), { displayMode: false, throwOnError: false, trust: true });
+                } catch {
+                    return `<code class="text-red-400">${latex}</code>`;
+                }
+            });
+        };
+
+        // Process markdown tables with embedded KaTeX FIRST
+        const renderTableWithMath = (text: string): string => {
+            const lines = text.split('\n');
+            const result: string[] = [];
+            let i = 0;
+            while (i < lines.length) {
+                const trimmed = lines[i].trim();
+                if (trimmed.startsWith('|') && trimmed.includes('|', 1)) {
+                    const tableLines: string[] = [];
+                    while (i < lines.length && lines[i].trim().startsWith('|')) {
+                        tableLines.push(lines[i].trim());
+                        i++;
+                    }
+                    if (tableLines.length >= 2 && /^\|[\s\-:|]+\|$/.test(tableLines[1])) {
+                        const headers = tableLines[0].split('|').slice(1, -1).map(c => renderInlineKatex(c.trim()));
+                        const rows = tableLines.slice(2).map(row => row.split('|').slice(1, -1).map(c => renderInlineKatex(c.trim())));
+                        const headerHtml = headers.map(c => `<th class="px-3 py-1.5 text-left text-cyan-400 font-bold border-b border-gray-600 text-sm">${c}</th>`).join('');
+                        const rowsHtml = rows.map(row => `<tr class="hover:bg-gray-800/50">${row.map(c => `<td class="px-3 py-1.5 border-b border-gray-700 text-gray-300 text-sm">${c}</td>`).join('')}</tr>`).join('');
+                        result.push(`<div class="mt-2 mb-2 overflow-x-auto"><table class="text-sm border border-gray-700 bg-[#0a0a0f]"><thead class="bg-gray-800"><tr>${headerHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+                        continue;
+                    }
+                    result.push(...tableLines);
+                    continue;
+                }
+                result.push(lines[i]);
+                i++;
+            }
+            return result.join('\n');
+        };
+        processedContent = renderTableWithMath(processedContent);
+
         // Helper function to escape underscores in \text{} blocks for KaTeX
         const escapeTextUnderscores = (latex: string): string => {
             // Replace underscores in \text{...} with \_
