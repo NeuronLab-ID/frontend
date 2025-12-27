@@ -766,6 +766,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                         <ReasoningPanel
                             problemId={problemId}
                             totalSteps={quest.sub_quests?.length || 0}
+                            problemName={problem?.title}
                         />
                     </div>
                 </div>
