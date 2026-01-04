@@ -175,12 +175,16 @@ export interface ProblemSummary {
     title: string;
     category: string;
     difficulty: string;
+    has_quest: boolean;
 }
 
-export async function getProblems(page: number = 1, limit: number = 20, category?: string): Promise<{ problems: ProblemSummary[]; total: number; page: number; limit: number }> {
+export async function getProblems(page: number = 1, limit: number = 20, category?: string, search?: string): Promise<{ problems: ProblemSummary[]; total: number; page: number; limit: number }> {
     let url = `/api/problems?page=${page}&limit=${limit}`;
     if (category) {
         url += `&category=${encodeURIComponent(category)}`;
+    }
+    if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
     }
     return apiRequest(url);
 }
@@ -277,6 +281,7 @@ export interface FullReasoningStep {
 export interface FullReasoningData {
     steps: FullReasoningStep[];
     summary: string;
+    web_references?: string;  // Perplexity search results (includes images)
 }
 
 export interface CachedReasoningResponse {
@@ -295,6 +300,7 @@ export type ReasoningStreamEvent =
     | { type: 'done'; cached: boolean }
     | { type: 'error'; message: string }
     | { type: 'search'; data: { step: number; topic: string } }
+    | { type: 'search_result'; data: { content: string } }
     | { type: 'search_complete'; data: { chars: number } };
 
 export async function* streamFullReasoning(problemId: number, force: boolean = false, usePerplexity: boolean = false, usePerplexityReasoning: boolean = false): AsyncGenerator<ReasoningStreamEvent> {
@@ -345,6 +351,31 @@ export async function* streamFullReasoning(problemId: number, force: boolean = f
             }
         }
     }
+}
+
+// Export reasoning as markdown
+export interface ExportMarkdownResponse {
+    markdown: string;
+    enhanced: boolean;
+}
+
+export async function exportReasoningMarkdown(problemId: number, useAi: boolean = false): Promise<ExportMarkdownResponse> {
+    return apiRequest<ExportMarkdownResponse>(`/api/quest/export-markdown/${problemId}?use_ai=${useAi}`, {
+        method: 'POST',
+    });
+}
+
+// Export reasoning as LaTeX (.tex) document
+export interface ExportLatexResponse {
+    latex: string;
+    ai_generated: boolean;
+    model?: string;  // 'sonnet' or 'pplx_alpha'
+}
+
+export async function exportReasoningLatex(problemId: number, useSonnet: boolean = false): Promise<ExportLatexResponse> {
+    return apiRequest<ExportLatexResponse>(`/api/quest/export-latex/${problemId}?useSonnet=${useSonnet}`, {
+        method: 'POST',
+    });
 }
 
 // Submission history
