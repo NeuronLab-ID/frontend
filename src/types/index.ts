@@ -22,6 +22,15 @@ export interface Problem {
     }[];
     playground_enabled?: boolean;
     playground_code?: string;
+    // Framework variants
+    pytorch_starter_code?: string;
+    pytorch_test_cases?: string;
+    tinygrad_starter_code?: string;
+    tinygrad_test_cases?: string;
+    cuda_starter_code?: string;
+    cuda_test_cases?: string;
+    // Video
+    video?: string;
 }
 
 export interface SubQuest {
@@ -65,4 +74,27 @@ export interface UserProgress {
     completedProblems: number[];
     questProgress: Record<number, number[]>;
     savedCode: Record<number, string>;
+}
+
+// ========== Manim Animation Types ==========
+
+export interface ManimAnimation {
+    id: number;
+    problemId: number;
+    stepNumber: number;
+    videoType: "visualization" | "calculation";
+    status: "pending" | "rendering" | "completed" | "error";
+    videoUrl?: string;
+    errorMessage?: string;
+    renderTimeMs?: number;
+    createdAt: string;
+}
+
+export interface ManimStatus {
+    problemId: number;
+    animations: ManimAnimation[];
+    totalSteps: number;
+    completedCount: number;
+    renderingCount: number;
+    errorCount: number;
 }

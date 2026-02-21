@@ -2,6 +2,8 @@
  * API client for NeuronLab backend
  */
 
+import type { Problem } from "@/types";
+
 // Dynamic API base - uses env var, or current hostname for same-network access
 const getApiBase = () => {
     // 1. Use environment variable if set
@@ -162,10 +164,10 @@ export interface ExecuteResponse {
     execution_time: number;
 }
 
-export async function executeCode(problemId: number, code: string): Promise<ExecuteResponse> {
+export async function executeCode(problemId: number, code: string, framework?: string): Promise<ExecuteResponse> {
     return apiRequest<ExecuteResponse>('/api/execute', {
         method: 'POST',
-        body: JSON.stringify({ problem_id: problemId, code }),
+        body: JSON.stringify({ problem_id: problemId, code, ...(framework && { framework }) }),
     });
 }
 
@@ -190,7 +192,7 @@ export async function getProblems(page: number = 1, limit: number = 20, category
 }
 
 // Get single problem details
-export async function getProblem(problemId: number): Promise<any> {
+export async function getProblem(problemId: number): Promise<Problem> {
     return apiRequest(`/api/problems/${problemId}`);
 }
 
@@ -303,7 +305,7 @@ export type ReasoningStreamEvent =
     | { type: 'search_result'; data: { content: string } }
     | { type: 'search_complete'; data: { chars: number } };
 
-export async function* streamFullReasoning(problemId: number, force: boolean = false, usePerplexity: boolean = false, usePerplexityReasoning: boolean = false): AsyncGenerator<ReasoningStreamEvent> {
+export async function* streamFullReasoning(problemId: number, force: boolean = false, usePerplexity: boolean = false, usePerplexityReasoning: boolean = false, model: string = ""): AsyncGenerator<ReasoningStreamEvent> {
     const token = getAuthToken();
     const API_BASE = typeof window !== 'undefined'
         ? `http://${window.location.hostname}:8000`
@@ -313,6 +315,7 @@ export async function* streamFullReasoning(problemId: number, force: boolean = f
     if (force) params.append('force', 'true');
     if (usePerplexity) params.append('usePerplexity', 'true');
     if (usePerplexityReasoning) params.append('usePerplexityReasoning', 'true');
+    if (model) params.append('model', model);
     const queryString = params.toString();
 
     const url = `${API_BASE}/api/quest/full-reasoning/${problemId}/stream${queryString ? '?' + queryString : ''}`;
@@ -378,6 +381,28 @@ export async function exportReasoningLatex(problemId: number, useSonnet: boolean
     });
 }
 
+// Export reasoning as Jupyter notebook (.ipynb)
+export interface ExportNotebookResponse {
+    notebook: string;  // JSON string of notebook content
+    ai_model: string;  // 'sonnet' or 'default'
+    cached?: boolean;
+}
+
+export async function exportReasoningNotebook(problemId: number, useSonnet: boolean = false): Promise<ExportNotebookResponse> {
+    return apiRequest<ExportNotebookResponse>(`/api/quest/export-notebook/${problemId}?useSonnet=${useSonnet}`, {
+        method: 'POST',
+    });
+}
+
+// Persist a mermaid AI fix to the reasoning database
+export async function persistMermaidFix(problemId: number, originalCode: string, fixedCode: string): Promise<{ success: boolean; updated: boolean }> {
+    return apiRequest<{ success: boolean; updated: boolean }>('/api/persist-mermaid-fix', {
+        method: 'POST',
+        body: JSON.stringify({ problem_id: problemId, original_code: originalCode, fixed_code: fixedCode }),
+    });
+}
+
+
 // Submission history
 export interface SubmissionRecord {
     id: number;
@@ -417,6 +442,8 @@ export interface UserProfile {
         email: string;
         created_at: string;
         avatar_url?: string;
+        display_name?: string;
+        bio?: string;
     };
     stats: {
         problems_solved: number;
@@ -432,16 +459,34 @@ export interface UserProfile {
         hard: number;
     };
     recent_activity: Array<{
-        type: string;
+        id: number;
         problem_id: number;
         passed: boolean;
         created_at: string;
     }>;
     calendar_data: Record<string, number>;
+    category_progress: Array<{
+        name: string;
+        solved: number;
+        total: number;
+    }>;
+    achievements: Array<{
+        name: string;
+        description: string;
+        unlocked: boolean;
+        unlocked_at?: string;
+    }>;
 }
 
 export async function getUserProfile(): Promise<UserProfile> {
     return apiRequest<UserProfile>('/api/user/profile');
+}
+
+export async function updateUserProfile(updates: { display_name?: string; bio?: string; avatar_url?: string }): Promise<UserProfile> {
+    return apiRequest<UserProfile>('/api/user/profile', {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+    });
 }
 
 // ========== Quest API ==========
@@ -512,4 +557,81 @@ export async function createQuest(problemId: number, data: Quest): Promise<{ mes
         method: 'POST',
         body: JSON.stringify({ problem_id: problemId, data }),
     });
+}
+
+// ========== Manim Animation Endpoints ==========
+
+export interface ManimAnimation {
+    id: number;
+    problemId: number;
+    stepNumber: number;
+    videoType: "visualization" | "calculation";
+    status: "pending" | "rendering" | "completed" | "error";
+    videoUrl?: string;
+    errorMessage?: string;
+    renderTimeMs?: number;
+    createdAt: string;
+}
+
+export interface ManimStatus {
+    problemId: number;
+    animations: ManimAnimation[];
+    totalSteps: number;
+    completedCount: number;
+    renderingCount: number;
+    errorCount: number;
+}
+
+// ========== Manim Mapping Functions ==========
+
+function mapManimAnimation(raw: Record<string, unknown>): ManimAnimation {
+    return {
+        id: raw.id as number,
+        problemId: (raw.problem_id ?? raw.problemId) as number,
+        stepNumber: (raw.step_number ?? raw.stepNumber) as number,
+        videoType: (raw.video_type ?? raw.videoType ?? "calculation") as ManimAnimation['videoType'],
+        status: raw.status as ManimAnimation['status'],
+        videoUrl: (raw.video_url ?? raw.video_path ?? raw.videoUrl) as string | undefined,
+        errorMessage: (raw.error_message ?? raw.errorMessage) as string | undefined,
+        renderTimeMs: (raw.render_time_ms ?? raw.renderTimeMs) as number | undefined,
+        createdAt: (raw.created_at ?? raw.createdAt) as string,
+    };
+}
+
+function mapManimStatus(raw: Record<string, unknown>): ManimStatus {
+    const rawAnimations = (raw.animations ?? []) as Record<string, unknown>[];
+    return {
+        problemId: (raw.problem_id ?? raw.problemId) as number,
+        animations: rawAnimations.map(mapManimAnimation),
+        totalSteps: (raw.total_steps ?? raw.totalSteps) as number,
+        completedCount: (raw.completed_count ?? raw.completedCount) as number,
+        renderingCount: (raw.rendering_count ?? raw.renderingCount) as number,
+        errorCount: (raw.error_count ?? raw.errorCount) as number,
+    };
+}
+
+export async function generateManimAnimation(problemId: number, stepNumber?: number, videoType?: string): Promise<ManimAnimation | ManimAnimation[]> {
+    const response = await apiRequest<Record<string, unknown> | Record<string, unknown>[]>('/api/manim/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+            problem_id: problemId,
+            ...(stepNumber !== undefined && { step_number: stepNumber }),
+            ...(videoType !== undefined && { video_type: videoType }),
+        }),
+    });
+
+    if (Array.isArray(response)) {
+        return response.map(mapManimAnimation);
+    }
+    return mapManimAnimation(response);
+}
+
+export async function getManimStatus(problemId: number): Promise<ManimStatus> {
+    const response = await apiRequest<Record<string, unknown>>(`/api/manim/status/${problemId}`);
+    return mapManimStatus(response);
+}
+
+export function getManimVideoUrl(problemId: number, stepNumber: number, videoType?: string): string {
+    const base = `${API_BASE}/api/manim/video/${problemId}/${stepNumber}`;
+    return videoType ? `${base}?type=${videoType}` : base;
 }
