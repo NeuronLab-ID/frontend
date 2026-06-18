@@ -129,7 +129,7 @@ export default function ProfilePage() {
                                         <span className="text-cyan-400 animate-pulse">_</span>
                                     </h1>
                                     <p className="text-gray-500 font-mono">@{profile.user.username}</p>
-                                    <p className="text-sm text-gray-600 font-mono">// joined {profile.user.created_at?.split('T')[0]}</p>
+                                    <p className="text-sm text-gray-600 font-mono">{"// joined "}{profile.user.created_at?.split('T')[0]}</p>
                                 </div>
                             </div>
                             <div className="flex gap-3">
@@ -264,7 +264,7 @@ export default function ProfilePage() {
                                 </h2>
                                 <div className="space-y-3">
                                     {profile.recent_activity.length === 0 ? (
-                                        <p className="text-gray-500 text-sm font-mono">// No activity yet. Start solving!</p>
+                                        <p className="text-gray-500 text-sm font-mono">{"// No activity yet. Start solving!"}</p>
                                     ) : (
                                         profile.recent_activity.map((activity, i: number) => (
                                             <div key={i} className="flex items-center gap-3 p-3 bg-[#0d0d14]/50 border border-gray-800">

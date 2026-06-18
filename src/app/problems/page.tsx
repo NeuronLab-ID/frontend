@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { hasQuest, getDifficultyColor } from "@/lib/data";
+import { hasQuest } from "@/lib/data";
 import { isProblemComplete, getStats } from "@/lib/progress";
 import { getProblems, ProblemSummary, getUserProfile, isAuthenticated } from "@/lib/api";
 import { HiSearch, HiUser, HiStar, HiCheckCircle, HiChevronLeft, HiChevronRight } from "react-icons/hi";
@@ -19,6 +19,7 @@ export default function ProblemsPage() {
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [solvedCount, setSolvedCount] = useState(0);
+    const [prevFilters, setPrevFilters] = useState({ search, category, difficulty, showQuestsOnly });
 
     useEffect(() => {
         // Load stats - prefer API for logged in users, fallback to local storage
@@ -57,9 +58,15 @@ export default function ProblemsPage() {
     }, [page, category]);
 
     // Reset to page 1 when filters change
-    useEffect(() => {
+    if (
+        prevFilters.search !== search ||
+        prevFilters.category !== category ||
+        prevFilters.difficulty !== difficulty ||
+        prevFilters.showQuestsOnly !== showQuestsOnly
+    ) {
+        setPrevFilters({ search, category, difficulty, showQuestsOnly });
         setPage(1);
-    }, [search, category, difficulty, showQuestsOnly]);
+    }
 
     const categories = [
         { name: "All", color: "gray" },

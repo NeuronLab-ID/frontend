@@ -186,11 +186,11 @@ export default function AboutPage() {
                             <h2 className="text-2xl md:text-3xl font-bold text-white">Hire Me</h2>
                         </div>
                         <p className="text-gray-400 text-lg leading-relaxed font-mono mb-6">
-                            Interested in working together? I'm available for
+                            Interested in working together? I&apos;m available for
                             <span className="text-green-400"> freelance projects</span>,
                             <span className="text-cyan-400"> consulting</span>, and
                             <span className="text-purple-400"> collaborations</span>.
-                            Let's build something amazing together!
+                            Let&apos;s build something amazing together!
                         </p>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div className="flex items-center gap-3 border-2 border-gray-700 bg-gray-900/50 px-5 py-3">
