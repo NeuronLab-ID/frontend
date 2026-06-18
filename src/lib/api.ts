@@ -4,24 +4,17 @@
 
 import type { Problem } from "@/types";
 
-// Dynamic API base - uses env var, or current hostname for same-network access
-const getApiBase = () => {
-    // 1. Use environment variable if set
+export function getApiBase(): string {
     if (process.env.NEXT_PUBLIC_API_URL) {
         return process.env.NEXT_PUBLIC_API_URL;
     }
 
-    // 2. In browser, use current hostname (supports same-network access via 192.x.x.x)
     if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        return `http://${hostname}:8000`;
+        return `http://${window.location.hostname}:8000`;
     }
 
-    // 3. Fallback for SSR
     return 'http://localhost:8000';
-};
-
-const API_BASE = getApiBase();
+}
 
 // Token management
 let authToken: string | null = null;
@@ -73,7 +66,7 @@ export async function apiRequest<T>(
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(`${getApiBase()}${endpoint}`, {
         ...options,
         headers,
     });
@@ -180,7 +173,12 @@ export interface ProblemSummary {
     has_quest: boolean;
 }
 
-export async function getProblems(page: number = 1, limit: number = 20, category?: string, search?: string): Promise<{ problems: ProblemSummary[]; total: number; page: number; limit: number }> {
+export interface ProblemListResponse {
+    problems: ProblemSummary[];
+    total: number;
+}
+
+export async function getProblems(page: number = 1, limit: number = 20, category?: string, search?: string): Promise<ProblemListResponse> {
     let url = `/api/problems?page=${page}&limit=${limit}`;
     if (category) {
         url += `&category=${encodeURIComponent(category)}`;
@@ -307,9 +305,6 @@ export type ReasoningStreamEvent =
 
 export async function* streamFullReasoning(problemId: number, force: boolean = false, usePerplexity: boolean = false, usePerplexityReasoning: boolean = false, model: string = ""): AsyncGenerator<ReasoningStreamEvent> {
     const token = getAuthToken();
-    const API_BASE = typeof window !== 'undefined'
-        ? `http://${window.location.hostname}:8000`
-        : 'http://localhost:8000';
 
     const params = new URLSearchParams();
     if (force) params.append('force', 'true');
@@ -318,7 +313,7 @@ export async function* streamFullReasoning(problemId: number, force: boolean = f
     if (model) params.append('model', model);
     const queryString = params.toString();
 
-    const url = `${API_BASE}/api/quest/full-reasoning/${problemId}/stream${queryString ? '?' + queryString : ''}`;
+    const url = `${getApiBase()}/api/quest/full-reasoning/${problemId}/stream${queryString ? '?' + queryString : ''}`;
     const response = await fetch(url, {
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -413,8 +408,17 @@ export interface SubmissionRecord {
     created_at: string;
 }
 
+export interface SubmissionsResponse {
+    submissions: SubmissionRecord[];
+}
+
+export async function getSubmissionsResponse(problemId: number): Promise<SubmissionsResponse> {
+    return apiRequest<SubmissionsResponse>(`/api/submissions/${problemId}`);
+}
+
 export async function getSubmissions(problemId: number): Promise<SubmissionRecord[]> {
-    return apiRequest<SubmissionRecord[]>(`/api/submissions/${problemId}`);
+    const response = await getSubmissionsResponse(problemId);
+    return response.submissions;
 }
 
 export async function saveSubmission(problemId: number, code: string, passed: boolean = false): Promise<{ id: number; message: string; passed: boolean }> {
@@ -539,13 +543,22 @@ export interface SubQuest {
     references: string[];
 }
 
-export async function getQuest(problemId: number): Promise<Quest> {
-    return apiRequest<Quest>(`/api/quests/${problemId}`);
+export interface QuestResponse {
+    quest: Quest;
+    source: string;
+    problem_id: number;
+}
+
+export async function getQuest(problemId: number): Promise<QuestResponse> {
+    return apiRequest<QuestResponse>(`/api/quests/${problemId}`);
 }
 
 export interface QuestCheckResponse {
-    exists: boolean;
-    local_dev: boolean;
+    available: boolean;
+    local_dev?: boolean;
+    source?: string;
+    can_generate?: boolean;
+    error?: string;
 }
 
 export async function checkQuestExists(problemId: number): Promise<QuestCheckResponse> {
@@ -553,7 +566,7 @@ export async function checkQuestExists(problemId: number): Promise<QuestCheckRes
 }
 
 export async function createQuest(problemId: number, data: Quest): Promise<{ message: string; id: number }> {
-    return apiRequest<{ message: string; id: number }>('/api/quests', {
+    return apiRequest<{ message: string; id: number }>('/api/quests/create', {
         method: 'POST',
         body: JSON.stringify({ problem_id: problemId, data }),
     });
@@ -580,6 +593,7 @@ export interface ManimStatus {
     completedCount: number;
     renderingCount: number;
     errorCount: number;
+    pendingCount: number;
 }
 
 // ========== Manim Mapping Functions ==========
@@ -607,6 +621,7 @@ function mapManimStatus(raw: Record<string, unknown>): ManimStatus {
         completedCount: (raw.completed_count ?? raw.completedCount) as number,
         renderingCount: (raw.rendering_count ?? raw.renderingCount) as number,
         errorCount: (raw.error_count ?? raw.errorCount) as number,
+        pendingCount: (raw.pending_count ?? raw.pendingCount) as number,
     };
 }
 
@@ -632,6 +647,6 @@ export async function getManimStatus(problemId: number): Promise<ManimStatus> {
 }
 
 export function getManimVideoUrl(problemId: number, stepNumber: number, videoType?: string): string {
-    const base = `${API_BASE}/api/manim/video/${problemId}/${stepNumber}`;
+    const base = `${getApiBase()}/api/manim/video/${problemId}/${stepNumber}`;
     return videoType ? `${base}?type=${videoType}` : base;
 }

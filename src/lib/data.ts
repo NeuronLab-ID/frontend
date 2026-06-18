@@ -1,12 +1,5 @@
 import { Problem, Quest } from "@/types";
-
-// API base for backend
-const getApiBase = () => {
-    if (typeof window !== 'undefined') {
-        return `http://${window.location.hostname}:8000`;
-    }
-    return 'http://localhost:8000';
-};
+import { getApiBase } from "@/lib/api";
 
 export async function getProblems(): Promise<Problem[]> {
     try {

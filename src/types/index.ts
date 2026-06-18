@@ -97,4 +97,5 @@ export interface ManimStatus {
     completedCount: number;
     renderingCount: number;
     errorCount: number;
+    pendingCount: number;
 }
