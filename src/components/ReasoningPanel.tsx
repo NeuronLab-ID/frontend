@@ -54,7 +54,29 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
     const [summaryRead, setSummaryRead] = useState(false);
 
     // Manim animations
-    const { isGenerating, error: animationError, generateAll, generateStep, getVideoUrl, getAnimationsByStep } = useManimAnimations();
+    const {
+        isGenerating,
+        error: animationError,
+        backends,
+        selectedBackend,
+        setSelectedBackend,
+        activeJobs,
+        failedJobs,
+        generateAll,
+        generateStep,
+        getVideoUrl,
+        getAnimationsByStep,
+    } = useManimAnimations();
+
+    const animationBackends = useMemo(
+        () => backends.filter(backend => backend.name === "cpu" || backend.name === "egpu"),
+        [backends]
+    );
+    const selectedAnimationBackend = animationBackends.find(backend => backend.name === selectedBackend);
+    const unavailableEgpu = animationBackends.find(backend => backend.name === "egpu" && !backend.available);
+    const isSelectedBackendUnavailable = selectedAnimationBackend?.available === false;
+    const formatBackendLabel = (backendName: string) => backendName === "egpu" ? "eGPU" : "CPU";
+    const formatJobStatus = (status: string) => status.replace(/_/g, " ");
 
     // Load reading state from localStorage
     useEffect(() => {
@@ -589,23 +611,78 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                     </button>
 
                     {/* Generate Animations Button */}
+                    {animationBackends.length > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 text-xs border border-gray-600 bg-gray-900/40 text-gray-400">
+                            <span className="text-gray-500">[Backend]</span>
+                            {animationBackends.map(backend => {
+                                const isSelected = selectedBackend === backend.name;
+                                const isDisabled = !backend.available;
+
+                                return (
+                                    <button
+                                        key={backend.name}
+                                        type="button"
+                                        onClick={() => setSelectedBackend(backend.name)}
+                                        disabled={isDisabled}
+                                        title={isDisabled && backend.reason ? backend.reason : `${formatBackendLabel(backend.name)} renderer`}
+                                        className={`px-2 py-0.5 border transition-colors ${isSelected
+                                            ? "border-cyan-400 text-cyan-400 bg-cyan-400/10"
+                                            : "border-gray-700 text-gray-500 hover:border-cyan-400 hover:text-cyan-400"
+                                            } ${isDisabled ? "opacity-40 cursor-not-allowed hover:border-gray-700 hover:text-gray-500" : ""}`}
+                                    >
+                                        {formatBackendLabel(backend.name)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                     <button
                         onClick={() => generateAll(problemId)}
-                        disabled={isGenerating}
+                        disabled={isGenerating || isSelectedBackendUnavailable}
                         className={`flex items-center gap-2 px-3 py-2 text-xs border transition-colors ${
-                            isGenerating
+                            isGenerating || isSelectedBackendUnavailable
                                 ? "border-gray-600 text-gray-500 opacity-50 cursor-not-allowed"
                                 : "border-gray-600 text-gray-400 hover:border-cyan-400 hover:text-cyan-400"
                         }`}
                     >
                         <HiCube className="w-3 h-3" />
-                        {isGenerating ? "[Generating...]" : "[Generate Animations]"}
+                        {isGenerating ? "[Generating...]" : isSelectedBackendUnavailable ? "[Backend Unavailable]" : "[Generate Animations]"}
                     </button>
 
                     {animationError && (
                         <span className="text-xs text-red-400">{animationError}</span>
                     )}
-                    
+
+                    {unavailableEgpu?.reason && (
+                        <span className="text-xs text-gray-500" title={unavailableEgpu.reason}>
+                            {"// eGPU unavailable: "}{unavailableEgpu.reason}
+                        </span>
+                    )}
+
+                    {(activeJobs.length > 0 || failedJobs.length > 0) && (
+                        <div className="w-full space-y-1 text-xs font-mono">
+                            {activeJobs.map(job => (
+                                <div key={job.jobId} className="border border-cyan-400/30 bg-cyan-400/5 px-2 py-1 text-cyan-300 flex items-center gap-2 flex-wrap">
+                                    <span>{"$ manim job"}</span>
+                                    <span className="text-gray-500">{job.jobId.slice(0, 8)}</span>
+                                    <span>{formatJobStatus(job.status)}</span>
+                                    {typeof job.progress === "number" && (
+                                        <span className="text-cyan-400">{Math.round(job.progress)}%</span>
+                                    )}
+                                    <span className="text-gray-500">via {formatBackendLabel(job.resolvedBackend || job.requestedBackend || selectedBackend)}</span>
+                                </div>
+                            ))}
+                            {failedJobs.map(job => (
+                                <div key={job.jobId} className="border border-red-400/30 bg-red-400/5 px-2 py-1 text-red-300 flex items-center gap-2 flex-wrap">
+                                    <span>{"$ manim failed"}</span>
+                                    <span className="text-gray-500">{job.jobId.slice(0, 8)}</span>
+                                    <span>{formatJobStatus(job.status)}</span>
+                                    <span className="text-red-400">{job.errorMessage || "Render failed"}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                     
                     {/* Export Menu */}
                     <ExportMenu 
                         problemId={problemId} 
