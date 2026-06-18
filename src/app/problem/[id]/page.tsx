@@ -4,14 +4,13 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Problem, Quest } from "@/types";
-import { getDifficultyColor, hasQuest } from "@/lib/data";
 import { saveCode, getSavedCode, markProblemComplete } from "@/lib/progress";
 import { MathRenderer } from "@/components/MathRenderer";
 import { SideQuestModal } from "@/components/SideQuestModal";
 import PlaygroundViewer from "@/components/PlaygroundViewer";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { TestResultsPanel } from "@/components/TestResultsPanel";
-import { HiBookOpen, HiLightBulb, HiExclamationCircle, HiClock, HiTrash, HiChevronLeft, HiPlay, HiRefresh, HiSave, HiSparkles } from "react-icons/hi";
+import { HiBookOpen, HiLightBulb, HiClock, HiTrash, HiChevronLeft, HiPlay, HiRefresh, HiSave, HiSparkles } from "react-icons/hi";
 import { executeCode, isAuthenticated, TestResult, getHint, getSubmissions, SubmissionRecord, saveSubmission, deleteSubmission, getSolution } from "@/lib/api";
 import { getEditorSettings, getMonacoTheme, EditorSettings, defineMonacoThemes } from "@/lib/settings";
 
@@ -25,7 +24,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
     const [problem, setProblem] = useState<Problem | null>(null);
     const [quest, setQuest] = useState<Quest | null>(null);
     const [code, setCode] = useState("");
-    const [output, setOutput] = useState<string[]>([]);
+    const [, setOutput] = useState<string[]>([]);
     const [running, setRunning] = useState(false);
     const [sideQuestsOpen, setSideQuestsOpen] = useState(false);
     const [activeStep, setActiveStep] = useState(1);
@@ -69,11 +68,10 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
             // Load quest from API
             try {
                 const { getQuest, getQuestProgress } = await import("@/lib/api");
-                const response = await getQuest(problemId) as any;
-                // Handle new API format: {quest: {...}, source: "..."}
-                const questData = response.quest || response;
+                const response = await getQuest(problemId);
+                const questData = response.quest;
                 if (questData && questData.sub_quests) {
-                    setQuest({ ...questData, id: response.problem_id || problemId } as Quest);
+                    setQuest({ ...questData, id: response.problem_id } as Quest);
                 }
 
                 try {
@@ -209,7 +207,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
             } else {
                 setHint("Unable to generate hint at this time.");
             }
-        } catch (error) {
+        } catch {
             setHint("Failed to get hint. Please try again.");
         } finally {
             setLoadingHint(false);
@@ -244,9 +242,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
         if (!isAuthenticated()) return;
         try {
             const history = await getSubmissions(problemId);
-            // Ensure we have an array (API might return { submissions: [] } or [])
-            const submissionsArray = Array.isArray(history) ? history : (history as any)?.submissions || [];
-            setSubmissions(submissionsArray);
+            setSubmissions(history);
             setShowHistory(true);
         } catch (error) {
             console.error("Failed to load history:", error);
@@ -405,16 +401,16 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                                         <h3 className="font-bold text-green-400">&gt; Example:</h3>
                                         <div className="border-2 border-gray-700 bg-[#1a1a2e] p-4 space-y-3">
                                             <div>
-                                                <span className="text-gray-500 text-sm">// Input:</span>
+                                                <span className="text-gray-500 text-sm">{"// Input:"}</span>
                                                 <pre className="text-cyan-400 mt-1 text-sm">{problem.example.input}</pre>
                                             </div>
                                             <div>
-                                                <span className="text-gray-500 text-sm">// Output:</span>
+                                                <span className="text-gray-500 text-sm">{"// Output:"}</span>
                                                 <pre className="text-green-400 mt-1 text-sm">{problem.example.output}</pre>
                                             </div>
                                             {problem.example.reasoning && (
                                                 <div>
-                                                    <span className="text-gray-500 text-sm">// Reasoning:</span>
+                                                    <span className="text-gray-500 text-sm">{"// Reasoning:"}</span>
                                                     <p className="text-gray-300 mt-1 text-sm">{problem.example.reasoning}</p>
                                                 </div>
                                             )}
@@ -511,7 +507,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                                             <span className="text-green-400 font-bold">Solution Unlocked!</span>
                                         </div>
                                         <div className="border-2 border-green-400/30 bg-[#1a1a2e] p-4">
-                                            <p className="text-xs text-gray-500 mb-2">// AI-Generated Reference Solution:</p>
+                                            <p className="text-xs text-gray-500 mb-2">{"// AI-Generated Reference Solution:"}</p>
                                             <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono overflow-x-auto">{solution || "// Solution not available"}</pre>
                                         </div>
                                     </div>
@@ -521,7 +517,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                                     <div className="w-16 h-16 mx-auto border-2 border-gray-600 flex items-center justify-center text-gray-600 text-2xl mb-4">
                                         🔒
                                     </div>
-                                    <p className="text-gray-500">// Solve the problem to unlock</p>
+                                    <p className="text-gray-500">{"// Solve the problem to unlock"}</p>
                                 </div>
                             )
                         )}
@@ -551,7 +547,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                                             <button onClick={() => setShowHistory(false)} className="text-gray-500 hover:text-white">✕</button>
                                         </div>
                                         {submissions.length === 0 ? (
-                                            <p className="p-4 text-sm text-gray-500 text-center">// No submissions yet</p>
+                                            <p className="p-4 text-sm text-gray-500 text-center">{"// No submissions yet"}</p>
                                         ) : (
                                             <div className="divide-y divide-gray-700">
                                                 {submissions.map((sub) => (
@@ -719,7 +715,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                             <span className="text-purple-400 text-xl">▶</span>
                             <div>
                                 <h2 className="text-lg font-bold text-purple-400">[Playground] {problem.title}</h2>
-                                <p className="text-sm text-gray-500">// Interactive algorithm visualization</p>
+                                <p className="text-sm text-gray-500">{"// Interactive algorithm visualization"}</p>
                             </div>
                         </div>
                         <button
@@ -750,7 +746,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                             <HiSparkles className="text-purple-400 text-xl" />
                             <div>
                                 <h2 className="text-lg font-bold text-purple-400">[Reasoning] {problem?.title}</h2>
-                                <p className="text-sm text-gray-500">// Step-by-step mathematical solution path</p>
+                                <p className="text-sm text-gray-500">{"// Step-by-step mathematical solution path"}</p>
                             </div>
                         </div>
                         <button

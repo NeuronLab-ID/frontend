@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { HiCheck, HiX, HiChevronUp, HiChevronDown } from "react-icons/hi";
 
 export interface TestResult {
     test_number: number;
@@ -44,7 +43,7 @@ export function TestResultsPanel({ results, isRunning }: TestResultsPanelProps) 
     if (results.length === 0 && !isRunning) {
         return (
             <div className="text-sm text-gray-500 font-mono">
-                // Run your code to see test results
+                {"// Run your code to see test results"}
             </div>
         );
     }
@@ -126,19 +125,19 @@ export function TestResultsPanel({ results, isRunning }: TestResultsPanelProps) 
                                         <div className="space-y-1 text-sm">
                                             {result.input && (
                                                 <div>
-                                                    <span className="text-gray-500">// Input: </span>
+                                                    <span className="text-gray-500">{"// Input: "}</span>
                                                     <span className="text-cyan-400">{result.input}</span>
                                                 </div>
                                             )}
                                             {result.expected && (
                                                 <div>
-                                                    <span className="text-gray-500">// Expected: </span>
+                                                    <span className="text-gray-500">{"// Expected: "}</span>
                                                     <span className="text-green-400">{result.expected}</span>
                                                 </div>
                                             )}
                                             {result.actual !== undefined && (
                                                 <div>
-                                                    <span className="text-gray-500">// Actual: </span>
+                                                    <span className="text-gray-500">{"// Actual: "}</span>
                                                     <span className={result.passed ? "text-green-400" : "text-red-400"}>
                                                         {result.actual || "None"}
                                                     </span>
@@ -146,7 +145,7 @@ export function TestResultsPanel({ results, isRunning }: TestResultsPanelProps) 
                                             )}
                                             {result.error && (
                                                 <div>
-                                                    <span className="text-gray-500">// Error: </span>
+                                                    <span className="text-gray-500">{"// Error: "}</span>
                                                     <span className="text-red-400">{result.error}</span>
                                                 </div>
                                             )}

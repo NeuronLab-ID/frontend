@@ -258,7 +258,7 @@ export function SideQuestModal({
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#0d0d14]">
                     {/* Relation to Problem */}
                     <div className="border-l-2 border-cyan-400/50 pl-4">
-                        <p className="text-sm text-gray-400 italic">// {quest.relation_to_problem}</p>
+                        <p className="text-sm text-gray-400 italic">{"// "}{quest.relation_to_problem}</p>
                     </div>
 
                     {/* Mathematical Definition */}
@@ -286,7 +286,7 @@ export function SideQuestModal({
                                     <div key={i} className="border-2 border-cyan-400/30 bg-[#1a1a2e] p-4">
                                         <p className="text-sm font-bold text-cyan-400 mb-1">[{formula.name}]</p>
                                         <MathRenderer content={formula.latex} className="text-gray-200" />
-                                        <p className="text-xs text-gray-500 mt-2">// <MathRenderer content={formula.description} className="inline" inline={true} /></p>
+                                        <p className="text-xs text-gray-500 mt-2">{"// "}<MathRenderer content={formula.description} className="inline" inline={true} /></p>
                                         <MathSampleGenerator key={`${quest.step}-${formula.name}`} formulaName={formula.name} formulaLatex={formula.latex} />
                                     </div>
                                 ))}
@@ -391,7 +391,7 @@ export function SideQuestModal({
                             {showHint && quest.hint && (
                                 <div className="border-2 border-cyan-400/30 bg-cyan-400/5 p-4 flex items-start gap-2">
                                     <HiLightBulb className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                                    <p className="text-cyan-300 text-sm">// {quest.hint}</p>
+                                    <p className="text-cyan-300 text-sm">{"// "}{quest.hint}</p>
                                 </div>
                             )}
 
@@ -422,16 +422,16 @@ export function SideQuestModal({
                                                 <div className="flex-1 text-sm">
                                                     <code className="text-cyan-400">{tc.input}</code>
                                                     <div className="mt-1 space-y-0.5">
-                                                        <p className="text-gray-500 text-xs">// Expected: <span className="text-green-400">{tc.expected}</span></p>
+                                                        <p className="text-gray-500 text-xs">{"// Expected: "}<span className="text-green-400">{tc.expected}</span></p>
                                                         {apiResults[i] && (
                                                             <p className="text-gray-500 text-xs">
-                                                                // Actual: <span className={apiResults[i].passed ? "text-green-400" : "text-red-400"}>
+                                                                {"// Actual: "}<span className={apiResults[i].passed ? "text-green-400" : "text-red-400"}>
                                                                     {apiResults[i].actual || "None"}
                                                                 </span>
                                                             </p>
                                                         )}
                                                         {apiResults[i]?.error && (
-                                                            <p className="text-red-400 text-xs">// Error: {apiResults[i].error}</p>
+                                                            <p className="text-red-400 text-xs">{"// Error: "}{apiResults[i].error}</p>
                                                         )}
                                                     </div>
                                                     {/* Generate Reasoning Button */}
@@ -496,7 +496,7 @@ export function SideQuestModal({
                             </h4>
                             <ul className="list-none text-sm text-red-300 space-y-1">
                                 {quest.common_mistakes.map((m, i) => (
-                                    <li key={i}>// {m}</li>
+                                    <li key={i}>{"// "}{m}</li>
                                 ))}
                             </ul>
                         </div>
