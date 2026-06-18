@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/api";
 
-export default function AuthNavButtons() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [mounted, setMounted] = useState(false);
+const emptySubscribe = () => () => {};
 
-    useEffect(() => {
-        setMounted(true);
-        setIsLoggedIn(isAuthenticated());
-    }, []);
+export default function AuthNavButtons() {
+    const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
     // Don't render anything until mounted to avoid hydration mismatch
     if (!mounted) {
@@ -24,6 +20,8 @@ export default function AuthNavButtons() {
             </div>
         );
     }
+
+    const isLoggedIn = isAuthenticated();
 
     if (isLoggedIn) {
         return (

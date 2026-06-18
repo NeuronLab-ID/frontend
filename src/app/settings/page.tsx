@@ -1,21 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
     HiUser,
-    HiColorSwatch,
     HiCode,
-    HiBell,
-    HiLockClosed,
     HiExclamation,
     HiCog,
     HiCheck
 } from "react-icons/hi";
 import { getUserProfile, isAuthenticated } from "@/lib/api";
-import { getMonacoTheme, defineMonacoThemes } from "@/lib/settings";
+import { getMonacoTheme, defineMonacoThemes, getEditorSettings, saveEditorSettings } from "@/lib/settings";
+
+const emptySubscribe = () => () => {};
 
 // Dynamic import for Monaco
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -39,11 +38,7 @@ function EditorPreview({ theme, fontSize, lineNumbers, tabSize }: {
     lineNumbers: boolean;
     tabSize: number;
 }) {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
     if (!mounted) {
         return <div className="h-48 bg-[#0d0d14] animate-pulse" />;
@@ -99,7 +94,6 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (typeof window !== "undefined") {
-            const { getEditorSettings } = require("@/lib/settings");
             const savedSettings = getEditorSettings();
             setEditorTheme(savedSettings.editorTheme);
             setFontSize(savedSettings.fontSize);
@@ -110,7 +104,6 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (typeof window !== "undefined" && !loading) {
-            const { saveEditorSettings } = require("@/lib/settings");
             saveEditorSettings({
                 editorTheme,
                 fontSize,
@@ -140,14 +133,6 @@ export default function SettingsPage() {
         }
         loadUserData();
     }, [router]);
-
-    const accentColors = [
-        { name: "Cyan", value: "#22d3ee" },
-        { name: "Purple", value: "#a855f7" },
-        { name: "Green", value: "#22c55e" },
-        { name: "Yellow", value: "#facc15" },
-        { name: "Pink", value: "#ec4899" },
-    ];
 
     return (
         <div className="min-h-screen bg-[#0d0d14] text-white">
@@ -380,7 +365,7 @@ export default function SettingsPage() {
                                     <label className="block text-sm text-gray-400 font-mono mb-3">&gt; preview</label>
                                     <div className="border-2 border-green-400/30 overflow-hidden">
                                         <div className="bg-[#1a1a2e] px-3 py-2 border-b-2 border-gray-800">
-                                            <span className="text-xs text-gray-500 font-mono">// preview.py</span>
+                                            <span className="text-xs text-gray-500 font-mono">{"// preview.py"}</span>
                                         </div>
                                         <EditorPreview
                                             theme={editorTheme}
@@ -403,8 +388,8 @@ export default function SettingsPage() {
                                 <div className="border-2 border-red-500/50 p-6 bg-red-500/5">
                                     <h3 className="font-bold text-red-400 font-mono mb-2">[DELETE_ACCOUNT]</h3>
                                     <p className="text-sm text-gray-400 font-mono mb-4">
-                                        // WARNING: This action cannot be undone.<br />
-                                        // All progress, solutions, and data will be permanently deleted.
+                                        {"// WARNING: This action cannot be undone."}<br />
+                                        {"// All progress, solutions, and data will be permanently deleted."}
                                     </p>
                                     <button
                                         onClick={() => setShowDeleteModal(true)}
@@ -426,8 +411,8 @@ export default function SettingsPage() {
                     <div className="relative bg-[#0d0d14] border-2 border-red-500 p-6 max-w-md w-full">
                         <h3 className="text-xl font-bold text-red-400 font-mono mb-4">&gt; CONFIRM_DELETE</h3>
                         <p className="text-gray-400 font-mono text-sm mb-6">
-                            // Are you absolutely sure?<br />
-                            // This will permanently delete your account and all associated data.
+                            {"// Are you absolutely sure?"}<br />
+                            {"// This will permanently delete your account and all associated data."}
                         </p>
                         <div className="flex gap-3">
                             <button

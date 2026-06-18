@@ -2,6 +2,8 @@
  * Editor Settings storage and utilities
  */
 
+import type { Monaco } from "@monaco-editor/react";
+
 export interface EditorSettings {
     theme: "dark" | "light" | "system";
     editorTheme: string;
@@ -68,7 +70,7 @@ export function getMonacoTheme(themeName: string): string {
 }
 
 // Define custom Monaco themes
-export function defineMonacoThemes(monaco: any) {
+export function defineMonacoThemes(monaco: Monaco) {
     // Monokai theme
     monaco.editor.defineTheme("monokai", {
         base: "vs-dark",
