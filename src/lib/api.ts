@@ -2,7 +2,18 @@
  * API client for NeuronLab backend
  */
 
-import type { Problem } from "@/types";
+import type {
+    CreateManimJobResponse,
+    ManimAnimation,
+    ManimBackend,
+    ManimBackendName,
+    ManimBackends,
+    ManimJob,
+    ManimJobStatus,
+    ManimStatus,
+    ManimVideoType,
+    Problem,
+} from "@/types";
 
 export function getApiBase(): string {
     if (process.env.NEXT_PUBLIC_API_URL) {
@@ -572,31 +583,51 @@ export async function createQuest(problemId: number, data: Quest): Promise<{ mes
     });
 }
 
-// ========== Manim Animation Endpoints ==========
-
-export interface ManimAnimation {
-    id: number;
-    problemId: number;
-    stepNumber: number;
-    videoType: "visualization" | "calculation";
-    status: "pending" | "rendering" | "completed" | "error";
-    videoUrl?: string;
-    errorMessage?: string;
-    renderTimeMs?: number;
-    createdAt: string;
-}
-
-export interface ManimStatus {
-    problemId: number;
-    animations: ManimAnimation[];
-    totalSteps: number;
-    completedCount: number;
-    renderingCount: number;
-    errorCount: number;
-    pendingCount: number;
-}
-
 // ========== Manim Mapping Functions ==========
+
+type RawManimBackend = {
+    name: ManimBackendName;
+    available: boolean;
+    default: boolean;
+    reason?: string | null;
+};
+
+type RawManimBackends = {
+    default_backend: ManimBackendName;
+    backends: RawManimBackend[];
+};
+
+type RawCreateManimJobResponse = {
+    job_id: string;
+    status: ManimJobStatus;
+    status_url: string;
+    events_url: string;
+};
+
+type RawManimJob = {
+    job_id?: string;
+    id?: string;
+    status: ManimJobStatus;
+    problem_id?: number;
+    step_number?: number | null;
+    video_type?: ManimVideoType | null;
+    progress?: number | null;
+    attempt?: number | null;
+    max_attempts?: number | null;
+    error_message?: string | null;
+    error_code?: string | null;
+    logs_tail?: string | null;
+    requested_backend?: ManimBackendName | null;
+    resolved_backend?: ManimBackendName | null;
+    status_url?: string;
+    events_url?: string;
+    created_at?: string | null;
+    updated_at?: string | null;
+    queued_at?: string | null;
+    started_at?: string | null;
+    finished_at?: string | null;
+    cancel_requested_at?: string | null;
+};
 
 function mapManimAnimation(raw: Record<string, unknown>): ManimAnimation {
     return {
@@ -623,6 +654,86 @@ function mapManimStatus(raw: Record<string, unknown>): ManimStatus {
         errorCount: (raw.error_count ?? raw.errorCount) as number,
         pendingCount: (raw.pending_count ?? raw.pendingCount) as number,
     };
+}
+
+function mapManimBackend(raw: RawManimBackend): ManimBackend {
+    return {
+        name: raw.name,
+        available: raw.available,
+        default: raw.default,
+        reason: raw.reason,
+    };
+}
+
+function mapManimBackends(raw: RawManimBackends): ManimBackends {
+    return {
+        defaultBackend: raw.default_backend,
+        backends: raw.backends.map(mapManimBackend),
+    };
+}
+
+function mapCreateManimJobResponse(raw: RawCreateManimJobResponse): CreateManimJobResponse {
+    return {
+        jobId: raw.job_id,
+        status: raw.status,
+        statusUrl: raw.status_url,
+        eventsUrl: raw.events_url,
+    };
+}
+
+function mapManimJob(raw: RawManimJob): ManimJob {
+    return {
+        jobId: raw.job_id ?? raw.id ?? "",
+        status: raw.status,
+        problemId: raw.problem_id,
+        stepNumber: raw.step_number,
+        videoType: raw.video_type,
+        progress: raw.progress,
+        attempt: raw.attempt,
+        maxAttempts: raw.max_attempts,
+        errorMessage: raw.error_message,
+        errorCode: raw.error_code,
+        logsTail: raw.logs_tail,
+        requestedBackend: raw.requested_backend,
+        resolvedBackend: raw.resolved_backend,
+        statusUrl: raw.status_url,
+        eventsUrl: raw.events_url,
+        createdAt: raw.created_at,
+        updatedAt: raw.updated_at,
+        queuedAt: raw.queued_at,
+        startedAt: raw.started_at,
+        finishedAt: raw.finished_at,
+        cancelRequestedAt: raw.cancel_requested_at,
+    };
+}
+
+export async function getManimBackends(): Promise<ManimBackends> {
+    const response = await apiRequest<RawManimBackends>('/api/manim/backends');
+    return mapManimBackends(response);
+}
+
+export async function createManimJob(
+    problemId: number,
+    stepNumber?: number,
+    videoType?: ManimVideoType,
+    backend?: ManimBackendName
+): Promise<CreateManimJobResponse> {
+    const response = await apiRequest<RawCreateManimJobResponse>('/api/manim/jobs', {
+        method: 'POST',
+        body: JSON.stringify({
+            problem_id: problemId,
+            ...(stepNumber !== undefined && { step_number: stepNumber }),
+            ...(videoType !== undefined && { video_type: videoType }),
+            ...(backend !== undefined && { backend }),
+        }),
+    });
+
+    return mapCreateManimJobResponse(response);
+}
+
+export async function getManimJob(jobId: string): Promise<ManimJob> {
+    const response = await apiRequest<RawManimJob>(`/api/manim/jobs/${jobId}`);
+    return mapManimJob(response);
 }
 
 export async function generateManimAnimation(problemId: number, stepNumber?: number, videoType?: string): Promise<ManimAnimation | ManimAnimation[]> {

@@ -78,11 +78,69 @@ export interface UserProgress {
 
 // ========== Manim Animation Types ==========
 
+export type ManimBackendName = "cpu" | "egpu";
+
+export type ManimVideoType = "visualization" | "calculation";
+
+export type ManimJobStatus =
+    | "queued"
+    | "generating_code"
+    | "rendering"
+    | "cancelling"
+    | "succeeded"
+    | "failed_retryable"
+    | "failed_terminal"
+    | "cancelled"
+    | "orphaned";
+
+export interface ManimBackend {
+    name: ManimBackendName;
+    available: boolean;
+    default: boolean;
+    reason?: string | null;
+}
+
+export interface ManimBackends {
+    defaultBackend: ManimBackendName;
+    backends: ManimBackend[];
+}
+
+export interface CreateManimJobResponse {
+    jobId: string;
+    status: ManimJobStatus;
+    statusUrl: string;
+    eventsUrl: string;
+}
+
+export interface ManimJob {
+    jobId: string;
+    status: ManimJobStatus;
+    problemId?: number;
+    stepNumber?: number | null;
+    videoType?: ManimVideoType | null;
+    progress?: number | null;
+    attempt?: number | null;
+    maxAttempts?: number | null;
+    errorMessage?: string | null;
+    errorCode?: string | null;
+    logsTail?: string | null;
+    requestedBackend?: ManimBackendName | null;
+    resolvedBackend?: ManimBackendName | null;
+    statusUrl?: string;
+    eventsUrl?: string;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    queuedAt?: string | null;
+    startedAt?: string | null;
+    finishedAt?: string | null;
+    cancelRequestedAt?: string | null;
+}
+
 export interface ManimAnimation {
     id: number;
     problemId: number;
     stepNumber: number;
-    videoType: "visualization" | "calculation";
+    videoType: ManimVideoType;
     status: "pending" | "rendering" | "completed" | "error";
     videoUrl?: string;
     errorMessage?: string;
