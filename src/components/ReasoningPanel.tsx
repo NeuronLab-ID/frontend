@@ -385,7 +385,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                         and provide a comprehensive explanation with formulas.
                     </p>
                     <p className="text-xs text-gray-500 mt-2">
-                        // Reasoning is generated once and cached for future visits
+                        {"// Reasoning is generated once and cached for future visits"}
                     </p>
                 </div>
             )}
@@ -413,7 +413,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                             </span>
                         </div>
                         <span className="text-xs text-gray-500 hidden sm:inline">
-                            // Web context for examples
+                            {"// Web context for examples"}
                         </span>
                     </label>
 
@@ -437,7 +437,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                             </span>
                         </div>
                         <span className="text-xs text-gray-500 hidden sm:inline">
-                            // Claude 4.5 Sonnet Thinking
+                            {"// Claude 4.5 Sonnet Thinking"}
                         </span>
                     </label>
 
@@ -463,7 +463,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                             </datalist>
                         </div>
                         <span className="text-xs text-gray-500 hidden sm:inline">
-                            // Override .env model
+                            {"// Override .env model"}
                         </span>
                     </div>
 
@@ -550,36 +550,37 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                             const printWindow = window.open('', '_blank');
                             if (!printWindow) return;
 
-                            printWindow.document.write(`
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                    <title>${problemName} - Solution Reasoning</title>
-                                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-                                    <style>
-                                        body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-                                        h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }
-                                        h2 { color: #06b6d4; margin-top: 30px; }
-                                        pre { background: #f3f4f6; padding: 16px; border-radius: 8px; overflow-x: auto; }
-                                        code { font-family: monospace; }
-                                        table { border-collapse: collapse; margin: 10px 0; }
-                                        th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
-                                        th { background: #f3f4f6; }
-                                        .step { margin-bottom: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; }
-                                        .step-title { font-weight: bold; color: #7c3aed; margin-bottom: 10px; }
-                                        @media print { body { padding: 20px; } }
-                                    </style>
-                                </head>
-                                <body>
-                                    <h1>${problemName} - Solution Reasoning</h1>
-                                    ${printContent.innerHTML}
-                                </body>
-                                </html>
-                            `);
-                            printWindow.document.close();
-                            printWindow.onload = () => {
-                                printWindow.print();
-                            };
+                            const printDocument = printWindow.document;
+                            printDocument.title = `${problemName} - Solution Reasoning`;
+
+                            const katexStylesheet = printDocument.createElement('link');
+                            katexStylesheet.rel = 'stylesheet';
+                            katexStylesheet.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css';
+
+                            const styles = printDocument.createElement('style');
+                            styles.textContent = `
+                                body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                                h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }
+                                h2 { color: #06b6d4; margin-top: 30px; }
+                                pre { background: #f3f4f6; padding: 16px; border-radius: 8px; overflow-x: auto; }
+                                code { font-family: monospace; }
+                                table { border-collapse: collapse; margin: 10px 0; }
+                                th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
+                                th { background: #f3f4f6; }
+                                .step { margin-bottom: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; }
+                                .step-title { font-weight: bold; color: #7c3aed; margin-bottom: 10px; }
+                                @media print { body { padding: 20px; } }
+                            `;
+
+                            const heading = printDocument.createElement('h1');
+                            heading.textContent = `${problemName} - Solution Reasoning`;
+
+                            const printableContent = printDocument.createElement('div');
+                            printableContent.innerHTML = printContent.innerHTML;
+
+                            printDocument.head.replaceChildren(katexStylesheet, styles);
+                            printDocument.body.replaceChildren(heading, printableContent);
+                            setTimeout(() => printWindow.print(), 0);
                         }}
                         className="flex items-center gap-2 px-3 py-2 text-xs border border-gray-600 text-gray-400 hover:border-green-400 hover:text-green-400 transition-colors"
                     >
@@ -634,7 +635,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                         [Collapse All]
                     </button>
                     <span className="text-gray-500 ml-2">
-                        // {readSteps.size}/{steps.length} read
+                        {"// "}{readSteps.size}/{steps.length} read
                         {lastReadStep && <span className="text-purple-400"> • Last: Step {lastReadStep}</span>}
                     </span>
                 </div>
@@ -824,7 +825,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                         <div className="w-6 h-6 border-2 border-gray-600 flex items-center justify-center text-xs">
                             {steps.length + i + 1}
                         </div>
-                        <span className="text-sm">// Waiting...</span>
+                        <span className="text-sm">{"// Waiting..."}</span>
                     </div>
                 ))}
 

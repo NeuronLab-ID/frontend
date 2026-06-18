@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import mermaid from "mermaid";
@@ -55,20 +55,20 @@ function sanitizeMermaidCode(code: string): string {
 
     // Fix: Multi-line node labels - convert to single line with <br/>
     // Match node definitions like [label\nmore\nlines] or (label\nmore)
-    sanitized = sanitized.replace(/\[([^\]]*)\]/g, (match, content) => {
+    sanitized = sanitized.replace(/\[([^\]]*)\]/g, (_match, content) => {
         // Replace newlines with <br/> for Mermaid
         const fixed = content.replace(/\n/g, '<br/>');
         return `["${fixed.replace(/"/g, "'")}"]`;
     });
 
     // Fix: Also handle parentheses-based labels
-    sanitized = sanitized.replace(/\(([^)]*\n[^)]*)\)/g, (match, content) => {
+    sanitized = sanitized.replace(/\(([^)]*\n[^)]*)\)/g, (_match, content) => {
         const fixed = content.replace(/\n/g, '<br/>');
         return `("${fixed.replace(/"/g, "'")}")`;
     });
 
     // Fix: Escape special characters in edge labels
-    sanitized = sanitized.replace(/-->\|([^|]*)\|/g, (match, label) => {
+    sanitized = sanitized.replace(/-->\|([^|]*)\|/g, (_match, label) => {
         const fixed = label.replace(/\n/g, ' ').trim();
         return `-->|${fixed}|`;
     });
@@ -104,7 +104,6 @@ interface MathRendererProps {
 
 export function MathRenderer({ content, className = "", inline = false, onMermaidFixed }: MathRendererProps) {
     const containerRef = useRef<HTMLSpanElement | HTMLDivElement>(null);
-    const [mermaidRendered, setMermaidRendered] = useState(false);
 
     // Store callback in ref for imperative DOM handler access
     const onMermaidFixedRef = useRef(onMermaidFixed);
@@ -296,7 +295,7 @@ export function MathRenderer({ content, className = "", inline = false, onMermai
         // Handle both raw underscores and already-escaped underscores (avoid double-escaping)
         const normalizeTextUnderscores = (latex: string): string => {
             // Process \text{...} and \texttt{...} blocks
-            return latex.replace(/\\text\{([^}]*)\}/g, (match, text) => {
+            return latex.replace(/\\text\{([^}]*)\}/g, (_match, text) => {
                 // First, temporarily replace already-escaped \_ with a placeholder
                 let processed = text.replace(/\\_/g, '\x00UNDERSCORE\x00');
                 // Then escape any raw underscores
@@ -304,7 +303,7 @@ export function MathRenderer({ content, className = "", inline = false, onMermai
                 // Restore the placeholders back to \_
                 processed = processed.replace(/\x00UNDERSCORE\x00/g, '\\_');
                 return `\\text{${processed}}`;
-            }).replace(/\\texttt\{([^}]*)\}/g, (match, text) => {
+            }).replace(/\\texttt\{([^}]*)\}/g, (_match, text) => {
                 let processed = text.replace(/\\_/g, '\x00UNDERSCORE\x00');
                 processed = processed.replace(/_/g, '\\_');
                 processed = processed.replace(/\x00UNDERSCORE\x00/g, '\\_');
@@ -372,7 +371,7 @@ export function MathRenderer({ content, className = "", inline = false, onMermai
         processedContent = processedContent.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
             // Handle mermaid blocks specially - they will be rendered by useEffect
             if (lang === 'mermaid') {
-                const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+                const diagramId = `mermaid-${Math.random().toString(36).slice(2, 11)}`;
                 return `<div class="mermaid-container my-4 p-4 bg-[#111827] border border-gray-700 rounded-lg overflow-x-auto" data-mermaid-id="${diagramId}" data-mermaid-code="${encodeURIComponent(code.trim())}"><div class="mermaid" id="${diagramId}">${code.trim()}</div></div>`;
             }
             const langClass = lang ? `language-${lang}` : '';
@@ -415,12 +414,6 @@ export function MathRenderer({ content, className = "", inline = false, onMermai
         processedContent = restoreBlocks(processedContent);
 
         containerRef.current.innerHTML = processedContent;
-        setMermaidRendered(false); // Trigger mermaid rendering
-    }, [content]);
-
-    // Second useEffect to render mermaid diagrams after content is set
-    useEffect(() => {
-        if (!containerRef.current || mermaidRendered) return;
 
         const mermaidContainers = containerRef.current.querySelectorAll('.mermaid-container');
         if (mermaidContainers.length === 0) return;
@@ -432,7 +425,7 @@ export function MathRenderer({ content, className = "", inline = false, onMermai
 
                 if (mermaidDiv && originalCode) {
                     const decodedCode = decodeURIComponent(originalCode);
-                    const diagramId = mermaidDiv.id || `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+                    const diagramId = mermaidDiv.id || `mermaid-${Math.random().toString(36).slice(2, 11)}`;
 
                     // Step 1: Try rendering with sanitization
                     const sanitizedCode = sanitizeMermaidCode(decodedCode);
@@ -526,12 +519,11 @@ export function MathRenderer({ content, className = "", inline = false, onMermai
                     }
                 }
             }
-            setMermaidRendered(true);
         };
 
         // Small delay to ensure DOM is ready
         setTimeout(renderMermaidDiagrams, 100);
-    }, [content, mermaidRendered]);
+    }, [content]);
 
     if (inline) {
         return <span ref={containerRef as React.RefObject<HTMLSpanElement>} className={`math-content whitespace-pre-wrap ${className}`} />;
@@ -541,26 +533,28 @@ export function MathRenderer({ content, className = "", inline = false, onMermai
 
 // Simple inline math renderer for single formulas
 export function InlineMath({ latex }: { latex: string }) {
+    let html: string;
     try {
-        const html = katex.renderToString(latex, {
+        html = katex.renderToString(latex, {
             displayMode: false,
             throwOnError: false,
         });
-        return <span dangerouslySetInnerHTML={{ __html: html }} />;
     } catch {
         return <code className="text-red-400">{latex}</code>;
     }
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 // Block math renderer
 export function BlockMath({ latex }: { latex: string }) {
+    let html: string;
     try {
-        const html = katex.renderToString(latex, {
+        html = katex.renderToString(latex, {
             displayMode: true,
             throwOnError: false,
         });
-        return <div className="my-4 overflow-x-auto" dangerouslySetInnerHTML={{ __html: html }} />;
     } catch {
         return <pre className="text-red-400">{latex}</pre>;
     }
+    return <div className="my-4 overflow-x-auto" dangerouslySetInnerHTML={{ __html: html }} />;
 }

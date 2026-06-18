@@ -78,7 +78,7 @@ export function MathSampleGenerator({ formulaName, formulaLatex, difficulty = "e
             {/* Step Selection Options */}
             {showOptions && !showSample && (
                 <div className="mt-3 bg-[#1a1a2e] p-4 border-2 border-cyan-400/30">
-                    <p className="text-xs text-gray-500 mb-3">// select_complexity:</p>
+                    <p className="text-xs text-gray-500 mb-3">{"// select_complexity:"}</p>
                     <div className="flex flex-wrap gap-2">
                         {stepOptions.map((option) => (
                             <button
@@ -133,7 +133,7 @@ export function MathSampleGenerator({ formulaName, formulaLatex, difficulty = "e
                     </div>
 
                     {error && (
-                        <div className="text-red-400 text-sm mb-2 border-l-2 border-red-400 pl-2">// Error: {error}</div>
+                        <div className="text-red-400 text-sm mb-2 border-l-2 border-red-400 pl-2">{"// Error: "}{error}</div>
                     )}
 
                     {sample && (
@@ -146,7 +146,7 @@ export function MathSampleGenerator({ formulaName, formulaLatex, difficulty = "e
                             ))}
 
                             <div className="pt-3 mt-2">
-                                <span className="text-xs text-green-400 font-bold">// Answer: </span>
+                                <span className="text-xs text-green-400 font-bold">{"// Answer: "}</span>
                                 <MathRenderer content={sample.result} className="text-green-400 inline" />
                             </div>
                         </div>
