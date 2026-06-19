@@ -126,6 +126,8 @@ export interface ManimJob {
     logsTail?: string | null;
     requestedBackend?: ManimBackendName | null;
     resolvedBackend?: ManimBackendName | null;
+    provider?: string | null;
+    model?: string | null;
     statusUrl?: string;
     eventsUrl?: string;
     createdAt?: string | null;

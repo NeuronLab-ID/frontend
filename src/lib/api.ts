@@ -432,8 +432,8 @@ export async function getSubmissions(problemId: number): Promise<SubmissionRecor
     return response.submissions;
 }
 
-export async function saveSubmission(problemId: number, code: string, passed: boolean = false): Promise<{ id: number; message: string; passed: boolean }> {
-    return apiRequest<{ id: number; message: string; passed: boolean }>('/api/submissions', {
+export async function saveSubmission(problemId: number, code: string, passed: boolean = false): Promise<{ id: number; message: string; created_at: string }> {
+    return apiRequest<{ id: number; message: string; created_at: string }>('/api/submissions', {
         method: 'POST',
         body: JSON.stringify({ problem_id: problemId, code, passed }),
     });
@@ -619,6 +619,8 @@ type RawManimJob = {
     logs_tail?: string | null;
     requested_backend?: ManimBackendName | null;
     resolved_backend?: ManimBackendName | null;
+    provider?: string | null;
+    model?: string | null;
     status_url?: string;
     events_url?: string;
     created_at?: string | null;
@@ -696,6 +698,8 @@ function mapManimJob(raw: RawManimJob): ManimJob {
         logsTail: raw.logs_tail,
         requestedBackend: raw.requested_backend,
         resolvedBackend: raw.resolved_backend,
+        provider: raw.provider,
+        model: raw.model,
         statusUrl: raw.status_url,
         eventsUrl: raw.events_url,
         createdAt: raw.created_at,
