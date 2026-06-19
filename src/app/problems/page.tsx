@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { hasQuest } from "@/lib/data";
 import { isProblemComplete, getStats } from "@/lib/progress";
 import { getProblems, ProblemSummary, getUserProfile, isAuthenticated } from "@/lib/api";
 import { HiSearch, HiUser, HiStar, HiCheckCircle, HiChevronLeft, HiChevronRight } from "react-icons/hi";
@@ -19,7 +18,6 @@ export default function ProblemsPage() {
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [solvedCount, setSolvedCount] = useState(0);
-    const [prevFilters, setPrevFilters] = useState({ search, category, difficulty, showQuestsOnly });
 
     useEffect(() => {
         // Load stats - prefer API for logged in users, fallback to local storage
@@ -46,7 +44,8 @@ export default function ProblemsPage() {
             try {
                 // Pass category to API (use undefined for "All" to fetch all categories)
                 const categoryFilter = category === "All" ? undefined : category;
-                const res = await getProblems(page, ITEMS_PER_PAGE, categoryFilter);
+                const searchArg = search.trim() || undefined;
+                const res = await getProblems(page, ITEMS_PER_PAGE, categoryFilter, searchArg);
                 setProblems(res.problems);
                 setTotal(res.total);
             } catch (error) {
@@ -55,18 +54,7 @@ export default function ProblemsPage() {
             setLoading(false);
         }
         loadProblems();
-    }, [page, category]);
-
-    // Reset to page 1 when filters change
-    if (
-        prevFilters.search !== search ||
-        prevFilters.category !== category ||
-        prevFilters.difficulty !== difficulty ||
-        prevFilters.showQuestsOnly !== showQuestsOnly
-    ) {
-        setPrevFilters({ search, category, difficulty, showQuestsOnly });
-        setPage(1);
-    }
+    }, [page, category, search]);
 
     const categories = [
         { name: "All", color: "gray" },
@@ -86,10 +74,9 @@ export default function ProblemsPage() {
     ];
 
     const filteredProblems = problems.filter((p) => {
-        // Category filter is handled by API, only apply local filters
-        if (search && !p.title.toLowerCase().includes(search.toLowerCase())) return false;
+        // Category and title search are handled by API, only apply local filters
         if (difficulty.length > 0 && !difficulty.includes(p.difficulty)) return false;
-        if (showQuestsOnly && !hasQuest(p.id)) return false;
+        if (showQuestsOnly && !p.has_quest) return false;
         return true;
     });
 
@@ -119,7 +106,7 @@ export default function ProblemsPage() {
                                 type="text"
                                 placeholder="> search problems..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                                 className="w-full pl-10 pr-4 py-2 bg-[#1a1a2e] border-2 border-gray-700 text-white placeholder-gray-500 font-mono focus:outline-none focus:border-cyan-400 transition-colors"
                             />
                         </div>
@@ -162,7 +149,7 @@ export default function ProblemsPage() {
                             {categories.map((cat) => (
                                 <button
                                     key={cat.name}
-                                    onClick={() => setCategory(cat.name)}
+                                    onClick={() => { setCategory(cat.name); setPage(1); }}
                                     className={`text-left px-3 py-2 font-mono text-sm transition-all border-l-2 ${category === cat.name
                                         ? "border-cyan-400 bg-cyan-400/10 text-cyan-400"
                                         : "border-transparent text-gray-400 hover:border-gray-600 hover:text-white"
@@ -196,6 +183,7 @@ export default function ProblemsPage() {
                                             } else {
                                                 setDifficulty(difficulty.filter((x) => x !== d.name));
                                             }
+                                            setPage(1);
                                         }}
                                         className="w-4 h-4 bg-[#1a1a2e] border-2 border-gray-600 appearance-none checked:bg-cyan-400 checked:border-cyan-400"
                                     />
@@ -211,7 +199,7 @@ export default function ProblemsPage() {
                             <input
                                 type="checkbox"
                                 checked={showQuestsOnly}
-                                onChange={(e) => setShowQuestsOnly(e.target.checked)}
+                                onChange={(e) => { setShowQuestsOnly(e.target.checked); setPage(1); }}
                                 className="w-4 h-4 bg-[#1a1a2e] border-2 border-gray-600 appearance-none checked:bg-yellow-400 checked:border-yellow-400"
                             />
                             <span className="text-yellow-400 font-mono text-sm">Has Quest</span>
@@ -242,7 +230,7 @@ export default function ProblemsPage() {
                             {/* Category Dropdown */}
                             <select
                                 value={category}
-                                onChange={(e) => setCategory(e.target.value)}
+                                onChange={(e) => { setCategory(e.target.value); setPage(1); }}
                                 className="bg-[#0d0d14] border border-gray-600 text-cyan-400 font-mono text-xs px-2 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
                             >
                                 {categories.map((cat) => (
@@ -264,6 +252,7 @@ export default function ProblemsPage() {
                                     } else {
                                         setDifficulty([val]);
                                     }
+                                    setPage(1);
                                 }}
                                 className="bg-[#0d0d14] border border-gray-600 text-purple-400 font-mono text-xs px-2 py-1.5 focus:outline-none focus:border-purple-400 cursor-pointer"
                             >
@@ -275,7 +264,7 @@ export default function ProblemsPage() {
 
                             {/* Quest Filter Toggle */}
                             <button
-                                onClick={() => setShowQuestsOnly(!showQuestsOnly)}
+                                onClick={() => { setShowQuestsOnly(!showQuestsOnly); setPage(1); }}
                                 className={`flex items-center gap-1.5 px-2 py-1.5 text-xs font-mono border transition-all ${showQuestsOnly
                                         ? "border-yellow-400 bg-yellow-400/20 text-yellow-400"
                                         : "border-gray-600 text-gray-500 hover:border-gray-500"
@@ -304,7 +293,7 @@ export default function ProblemsPage() {
                                         <div className="flex items-start justify-between">
                                             <span className="text-xs text-gray-500 font-mono">#{problem.id}</span>
                                             <div className="flex items-center gap-2">
-                                                {hasQuest(problem.id) && (
+                                                {problem.has_quest && (
                                                     <HiStar className="w-4 h-4 text-yellow-400" />
                                                 )}
                                                 {isProblemComplete(problem.id) && (
