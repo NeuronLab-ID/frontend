@@ -17,6 +17,14 @@ import { getEditorSettings, getMonacoTheme, EditorSettings, defineMonacoThemes }
 // Dynamically import Monaco to avoid SSR issues
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
+function getOutputLineClass(line: string): string {
+    if (line.includes("✓") || line.startsWith("All tests passed")) return "text-green-400";
+    if (line.includes("✗") || line.includes("❌") || line.includes("⚠")) return "text-red-400";
+    if (line.startsWith("Error:") || line.startsWith("  Error:")) return "text-red-400";
+    if (line.startsWith("Execution time")) return "text-gray-600";
+    return "text-gray-300";
+}
+
 export default function ProblemPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const problemId = parseInt(id);
@@ -24,7 +32,7 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
     const [problem, setProblem] = useState<Problem | null>(null);
     const [quest, setQuest] = useState<Quest | null>(null);
     const [code, setCode] = useState("");
-    const [, setOutput] = useState<string[]>([]);
+    const [output, setOutput] = useState<string[]>([]);
     const [running, setRunning] = useState(false);
     const [sideQuestsOpen, setSideQuestsOpen] = useState(false);
     const [activeStep, setActiveStep] = useState(1);
@@ -104,6 +112,8 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
         if (!isAuthenticated()) {
             setOutput(["⚠️ Please login to run code"]);
             setHint("You need to be logged in to execute code. Click 'Login' in the navbar.");
+            setTestResults([]);
+            setLastError(null);
             return;
         }
 
@@ -235,6 +245,9 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
         if (problem) {
             setCode(problem.starter_code || "");
             setOutput([]);
+            setTestResults([]);
+            setLastError(null);
+            setHint(null);
         }
     };
 
@@ -253,6 +266,9 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
         setCode(submission.code);
         setShowHistory(false);
         setOutput([`Loaded submission from ${new Date(submission.created_at).toLocaleString()}`]);
+        setTestResults([]);
+        setLastError(null);
+        setHint(null);
     };
 
     const handleDeleteSubmission = async (submissionId: number, e: React.MouseEvent) => {
@@ -669,6 +685,20 @@ export default function ProblemPage({ params }: { params: Promise<{ id: string }
                                 </button>
                             )}
                         </div>
+
+                        {/* Execution Output Log */}
+                        {output.length > 0 && (
+                            <div className="mb-3 border-2 border-gray-700 bg-[#0d0d14] max-h-40 overflow-y-auto">
+                                <pre className="px-4 py-3 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed">
+                                    {output.map((line, i) => (
+                                        <span key={i} className={getOutputLineClass(line)}>
+                                            {line}
+                                            {i < output.length - 1 ? "\n" : ""}
+                                        </span>
+                                    ))}
+                                </pre>
+                            </div>
+                        )}
 
                         {/* Test Results Panel */}
                         <TestResultsPanel results={testResults} isRunning={running} />

@@ -26,6 +26,14 @@ export function TestResultsPanel({ results, isRunning }: TestResultsPanelProps) 
         return failedTests;
     });
     const [collapsed, setCollapsed] = useState(false);
+    const [prevResults, setPrevResults] = useState(results);
+
+    if (results !== prevResults) {
+        setPrevResults(results);
+        const failedTests = new Set<number>();
+        results.filter(r => !r.passed).forEach(r => failedTests.add(r.test_number));
+        setExpandedTests(failedTests);
+    }
 
     const passedCount = results.filter(r => r.passed).length;
     const allPassed = results.length > 0 && passedCount === results.length;
