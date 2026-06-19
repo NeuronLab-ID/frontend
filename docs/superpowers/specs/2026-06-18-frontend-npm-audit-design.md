@@ -4,13 +4,14 @@
 
 Clean the frontend npm dependency tree so `npm audit` reports zero vulnerabilities while keeping the application behavior stable. This work is limited to the `frontend/` project repository.
 
-## Current State
+## Current State As Of 2026-06-18
 
 - The frontend uses npm with `package.json` and `package-lock.json`.
-- `npm audit` currently reports 11 vulnerabilities: 2 low, 5 moderate, and 4 high.
-- The direct audit blocker is `next@16.1.0`; npm recommends `next@16.2.9` as a non-major fix.
+- `npm audit` reported 11 vulnerabilities: 2 low, 5 moderate, and 4 high.
+- The direct audit blocker was Next.js version 16.1.0; npm recommended `next@16.2.9` as a non-major fix.
 - Additional vulnerable transitive packages include `@babel/core`, `ajv`, `brace-expansion`, `dompurify`, `flatted`, `js-yaml`, `minimatch`, `picomatch`, and `postcss`.
 - `frontend/` is its own git repository. Backend dependency updates are out of scope for this cycle.
+- Current local prod and dev `npm audit` status is 0 vulnerabilities with Next 16.2.9, `eslint-config-next` 16.2.9, React 19.2.3, and Tailwind CSS 4.1.18.
 
 ## Approach
 

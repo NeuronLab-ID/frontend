@@ -41,9 +41,10 @@ Track your progress, submission history, and success rates across all problem ca
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16.2.9 (App Router)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
+- **React**: React 19.2.3
+- **Styling**: Tailwind CSS 4.1.18
 - **Code Editor**: Monaco Editor
 - **Math Rendering**: KaTeX
 - **Icons**: React Icons
