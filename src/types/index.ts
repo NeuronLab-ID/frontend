@@ -1,3 +1,8 @@
+export interface TestCase {
+    test: string;
+    expected_output: string;
+}
+
 export interface Problem {
     id: number;
     title: string;
@@ -7,7 +12,7 @@ export interface Problem {
     description_decoded?: string;
     learn_section?: string;
     learn_section_decoded?: string;
-    example: {
+    example?: {
         input: string;
         output: string;
         reasoning?: string;
@@ -16,21 +21,18 @@ export interface Problem {
     learn?: string;
     solution?: string;
     test_code?: string;
-    test_cases?: {
-        test: string;
-        expected_output: string;
-    }[];
+    test_cases?: TestCase[];
     playground_enabled?: boolean;
     playground_code?: string;
     // Framework variants
     pytorch_starter_code?: string;
-    pytorch_test_cases?: string;
+    pytorch_test_cases?: TestCase[];
     tinygrad_starter_code?: string;
-    tinygrad_test_cases?: string;
+    tinygrad_test_cases?: TestCase[];
     cuda_starter_code?: string;
-    cuda_test_cases?: string;
+    cuda_test_cases?: TestCase[];
     // Video
-    video?: string;
+    video?: string | unknown;
 }
 
 export interface SubQuest {

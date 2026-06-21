@@ -366,6 +366,7 @@ export async function* streamFullReasoning(problemId: number, force: boolean = f
 export interface ExportMarkdownResponse {
     markdown: string;
     enhanced: boolean;
+    cached?: boolean;
 }
 
 export async function exportReasoningMarkdown(problemId: number, useAi: boolean = false): Promise<ExportMarkdownResponse> {
@@ -379,6 +380,7 @@ export interface ExportLatexResponse {
     latex: string;
     ai_generated: boolean;
     model?: string;  // 'sonnet' or 'pplx_alpha'
+    cached?: boolean;
 }
 
 export async function exportReasoningLatex(problemId: number, useSonnet: boolean = false): Promise<ExportLatexResponse> {
@@ -446,8 +448,13 @@ export async function deleteSubmission(submissionId: number): Promise<{ message:
 }
 
 // AI-generated solution
-export async function getSolution(problemId: number): Promise<{ solution: string }> {
-    return apiRequest<{ solution: string }>(`/api/problems/${problemId}/solution`);
+export interface SolutionResponse {
+    solution: string;
+    cached: boolean;
+}
+
+export async function getSolution(problemId: number): Promise<SolutionResponse> {
+    return apiRequest<SolutionResponse>(`/api/problems/${problemId}/solution`);
 }
 
 export interface UserProfile {
