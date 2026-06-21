@@ -11,7 +11,7 @@ import {
     HiCog,
     HiCheck
 } from "react-icons/hi";
-import { getUserProfile, isAuthenticated } from "@/lib/api";
+import { getUserProfile, updateUserProfile, isAuthenticated } from "@/lib/api";
 import { getMonacoTheme, defineMonacoThemes, getEditorSettings, saveEditorSettings } from "@/lib/settings";
 
 const emptySubscribe = () => () => {};
@@ -79,6 +79,8 @@ export default function SettingsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saved, setSaved] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     // Form states
     const [displayName, setDisplayName] = useState("");
@@ -122,9 +124,10 @@ export default function SettingsPage() {
         async function loadUserData() {
             try {
                 const profile = await getUserProfile();
-                setDisplayName(profile.user.username);
+                setDisplayName(profile.user.display_name ?? profile.user.username);
                 setUsername(profile.user.username);
                 setEmail(profile.user.email);
+                setBio(profile.user.bio ?? "");
             } catch (error) {
                 console.error("Failed to load user data:", error);
             } finally {
@@ -133,6 +136,21 @@ export default function SettingsPage() {
         }
         loadUserData();
     }, [router]);
+
+    const handleSaveAccount = async () => {
+        if (saving) return;
+        setSaving(true);
+        setSaveError(null);
+        try {
+            await updateUserProfile({ display_name: displayName, bio });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : "Failed to save changes");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#0d0d14] text-white">
@@ -249,7 +267,7 @@ export default function SettingsPage() {
                                             <input
                                                 type="text"
                                                 value={username}
-                                                onChange={(e) => setUsername(e.target.value)}
+                                                readOnly
                                                 className="w-full pl-8 pr-10 py-3 bg-[#0d0d14] border-2 border-gray-700 text-white font-mono focus:outline-none focus:border-cyan-400 transition-colors"
                                             />
                                             <HiCheck className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-400" />
@@ -261,7 +279,7 @@ export default function SettingsPage() {
                                             <input
                                                 type="email"
                                                 value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
+                                                readOnly
                                                 className="w-full px-4 pr-24 py-3 bg-[#0d0d14] border-2 border-gray-700 text-white font-mono focus:outline-none focus:border-cyan-400 transition-colors"
                                             />
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-0.5 border border-green-400/50 text-green-400 text-xs font-mono">
@@ -282,13 +300,13 @@ export default function SettingsPage() {
                                 </div>
 
                                 <button
-                                    onClick={() => {
-                                        setSaved(true);
-                                        setTimeout(() => setSaved(false), 3000);
-                                    }}
+                                    onClick={handleSaveAccount}
+                                    disabled={saving}
                                     className="px-6 py-2 border-2 border-cyan-400 bg-cyan-400 text-black font-mono font-bold hover:bg-cyan-300 transition-colors flex items-center gap-2"
                                 >
-                                    {saved ? (
+                                    {saving ? (
+                                        "[Saving...]"
+                                    ) : saved ? (
                                         <>
                                             <HiCheck className="w-4 h-4" />
                                             Saved!
@@ -297,6 +315,10 @@ export default function SettingsPage() {
                                         "[Save Changes]"
                                     )}
                                 </button>
+
+                                {saveError && (
+                                    <p className="text-red-400 font-mono text-sm">{`// ${saveError}`}</p>
+                                )}
                             </div>
                         )}
 
