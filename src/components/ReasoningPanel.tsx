@@ -7,6 +7,7 @@ import { HiSparkles, HiRefresh, HiExclamationCircle, HiTranslate, HiCheck, HiPri
 import { streamFullReasoning, getCachedFullReasoning, FullReasoningStep, isAuthenticated, persistMermaidFix } from "@/lib/api";
 import { useManimAnimations } from "@/hooks/useManimAnimations";
 import { AnimationPlayer } from "@/components/AnimationPlayer";
+import type { ManimJob, ManimJobStatus } from "@/types";
 
 interface ReadingState {
     expandedSteps: number[];
@@ -18,6 +19,30 @@ interface ReadingState {
 
 const READING_STATE_KEY_PREFIX = "reasoning_reading_state_";
 const MODEL_PRESETS = ["claude-opus-4-6-thinking", "claude-sonnet-4.5", "gpt-4o", "gpt-4o-mini"];
+
+const MANIM_STATUS_LABELS: Record<ManimJobStatus, string> = {
+    queued: "queued",
+    generating_code: "generating code",
+    rendering: "rendering",
+    cancelling: "cancelling",
+    succeeded: "succeeded",
+    failed_retryable: "failed (retryable)",
+    failed_terminal: "failed (terminal)",
+    cancelled: "cancelled",
+    orphaned: "orphaned",
+};
+
+const RETRYABLE_FAILED_STATUSES: ManimJobStatus[] = ["failed_retryable", "orphaned"];
+
+const formatManimAttempt = (job: ManimJob): string | null => {
+    if (typeof job.attempt !== "number" || job.attempt <= 0) {
+        return null;
+    }
+    if (typeof job.maxAttempts === "number" && job.maxAttempts > 0) {
+        return `try ${job.attempt}/${job.maxAttempts}`;
+    }
+    return `try ${job.attempt}`;
+};
 
 interface ReasoningPanelProps {
     problemId: number;
@@ -78,7 +103,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
     const unavailableEgpu = animationBackends.find(backend => backend.name === "egpu" && !backend.available);
     const isSelectedBackendUnavailable = selectedAnimationBackend?.available === false;
     const formatBackendLabel = (backendName: string) => backendName === "egpu" ? "eGPU" : "CPU";
-    const formatJobStatus = (status: string) => status.replace(/_/g, " ");
+    const formatJobStatus = (status: ManimJobStatus) => MANIM_STATUS_LABELS[status];
 
     // Load reading state from localStorage
     useEffect(() => {
@@ -663,43 +688,71 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
 
                     {(activeJobs.length > 0 || failedJobs.length > 0) && (
                         <div className="w-full space-y-1 text-xs font-mono">
-                            {activeJobs.map(job => (
-                                <div key={job.jobId} className="border border-cyan-400/30 bg-cyan-400/5 px-2 py-1 text-cyan-300 flex items-center gap-2 flex-wrap">
-                                    <span>{"$ manim job"}</span>
-                                    <span className="text-gray-500">{job.jobId.slice(0, 8)}</span>
-                                    <span>{formatJobStatus(job.status)}</span>
-                                    {typeof job.progress === "number" && (
-                                        <span className="text-cyan-400">{Math.round(job.progress)}%</span>
-                                    )}
-                                    <span className="text-gray-500">via {formatBackendLabel(job.resolvedBackend || job.requestedBackend || selectedBackend)}</span>
-                                    {job.status !== "cancelling" && (
+                            {activeJobs.map(job => {
+                                const shortId = job.jobId.slice(0, 8);
+                                const attempt = formatManimAttempt(job);
+                                const isCancelling = job.status === "cancelling";
+                                return (
+                                    <div key={job.jobId} className="border border-cyan-400/30 bg-cyan-400/5 px-2 py-1 text-cyan-300 flex items-center gap-2 flex-wrap">
+                                        <span className="text-gray-500">{"$ manim job"}</span>
+                                        <span className="text-gray-500" title={job.jobId}>{shortId}</span>
+                                        <span className="text-cyan-200">{formatJobStatus(job.status)}</span>
+                                        {typeof job.progress === "number" && (
+                                            <span className="text-cyan-400">{Math.round(job.progress)}%</span>
+                                        )}
+                                        {attempt && <span className="text-gray-500">{attempt}</span>}
+                                        <span className="text-gray-500">via {formatBackendLabel(job.resolvedBackend || job.requestedBackend || selectedBackend)}</span>
                                         <button
                                             type="button"
                                             onClick={() => cancelJob(job.jobId)}
-                                            className="ml-auto px-1.5 py-0.5 border border-cyan-400/40 text-cyan-300 hover:border-red-400 hover:text-red-300 transition-colors"
+                                            disabled={isCancelling}
+                                            aria-label={isCancelling ? `Cancelling Manim job ${shortId}` : `Cancel Manim job ${shortId}`}
+                                            className={isCancelling
+                                                ? "ml-auto px-1.5 py-0.5 border border-gray-600 text-gray-500 opacity-60 cursor-not-allowed"
+                                                : "ml-auto px-1.5 py-0.5 border border-cyan-400/40 text-cyan-300 hover:border-red-400 hover:text-red-300 transition-colors"}
                                         >
-                                            [Cancel]
+                                            {isCancelling ? "[Cancelling...]" : "[Cancel]"}
                                         </button>
-                                    )}
-                                </div>
-                            ))}
-                            {failedJobs.map(job => (
-                                <div key={job.jobId} className="border border-red-400/30 bg-red-400/5 px-2 py-1 text-red-300 flex items-center gap-2 flex-wrap">
-                                    <span>{"$ manim failed"}</span>
-                                    <span className="text-gray-500">{job.jobId.slice(0, 8)}</span>
-                                    <span>{formatJobStatus(job.status)}</span>
-                                    <span className="text-red-400">{job.errorMessage || "Render failed"}</span>
-                                    {(job.status === "failed_retryable" || job.status === "orphaned") && (
-                                        <button
-                                            type="button"
-                                            onClick={() => retryJob(job.jobId)}
-                                            className="ml-auto px-1.5 py-0.5 border border-red-400/40 text-red-300 hover:border-cyan-400 hover:text-cyan-300 transition-colors"
-                                        >
-                                            [Retry]
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                                    </div>
+                                );
+                            })}
+                            {failedJobs.map(job => {
+                                const shortId = job.jobId.slice(0, 8);
+                                const attempt = formatManimAttempt(job);
+                                const canRetry = RETRYABLE_FAILED_STATUSES.includes(job.status);
+                                return (
+                                    <div key={job.jobId} className="border border-red-400/30 bg-red-400/5 px-2 py-1 text-red-300">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-gray-500">{"$ manim failed"}</span>
+                                            <span className="text-gray-500" title={job.jobId}>{shortId}</span>
+                                            <span className="text-red-200">{formatJobStatus(job.status)}</span>
+                                            {attempt && <span className="text-gray-500">{attempt}</span>}
+                                            <span className="text-gray-500">via {formatBackendLabel(job.resolvedBackend || job.requestedBackend || selectedBackend)}</span>
+                                            <span className="text-red-400 break-words min-w-0">{job.errorMessage || "Render failed"}</span>
+                                            {canRetry ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => retryJob(job.jobId)}
+                                                    aria-label={`Retry Manim job ${shortId}`}
+                                                    className="ml-auto px-1.5 py-0.5 border border-red-400/40 text-red-300 hover:border-cyan-400 hover:text-cyan-300 transition-colors"
+                                                >
+                                                    [Retry]
+                                                </button>
+                                            ) : (
+                                                <span className="ml-auto text-[10px] text-gray-500" title="This job cannot be retried automatically">
+                                                    {"// not retryable"}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {job.logsTail && (
+                                            <details className="mt-1">
+                                                <summary className="cursor-pointer select-none text-[10px] text-gray-500 hover:text-red-300">[logs]</summary>
+                                                <pre className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap break-words border border-red-400/20 bg-black/40 p-1 text-[10px] leading-relaxed text-gray-400">{job.logsTail}</pre>
+                                            </details>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                      
