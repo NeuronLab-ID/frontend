@@ -611,6 +611,11 @@ type RawCreateManimJobResponse = {
     events_url: string;
 };
 
+type RawManimJobActionResponse = {
+    job_id: string;
+    status: ManimJobStatus;
+};
+
 type RawManimJob = {
     job_id?: string;
     id?: string;
@@ -745,6 +750,23 @@ export async function createManimJob(
 export async function getManimJob(jobId: string): Promise<ManimJob> {
     const response = await apiRequest<RawManimJob>(`/api/manim/jobs/${jobId}`);
     return mapManimJob(response);
+}
+
+export async function cancelManimJob(jobId: string): Promise<Pick<ManimJob, "jobId" | "status">> {
+    const response = await apiRequest<RawManimJobActionResponse>(`/api/manim/jobs/${jobId}/cancel`, {
+        method: 'POST',
+    });
+    return {
+        jobId: response.job_id,
+        status: response.status,
+    };
+}
+
+export async function retryManimJob(jobId: string): Promise<CreateManimJobResponse> {
+    const response = await apiRequest<RawCreateManimJobResponse>(`/api/manim/jobs/${jobId}/retry`, {
+        method: 'POST',
+    });
+    return mapCreateManimJobResponse(response);
 }
 
 export async function generateManimAnimation(problemId: number, stepNumber?: number, videoType?: string): Promise<ManimAnimation | ManimAnimation[]> {
