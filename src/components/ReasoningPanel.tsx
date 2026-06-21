@@ -64,6 +64,8 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
         failedJobs,
         generateAll,
         generateStep,
+        cancelJob,
+        retryJob,
         getVideoUrl,
         getAnimationsByStep,
     } = useManimAnimations();
@@ -670,6 +672,15 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                                         <span className="text-cyan-400">{Math.round(job.progress)}%</span>
                                     )}
                                     <span className="text-gray-500">via {formatBackendLabel(job.resolvedBackend || job.requestedBackend || selectedBackend)}</span>
+                                    {job.status !== "cancelling" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => cancelJob(job.jobId)}
+                                            className="ml-auto px-1.5 py-0.5 border border-cyan-400/40 text-cyan-300 hover:border-red-400 hover:text-red-300 transition-colors"
+                                        >
+                                            [Cancel]
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                             {failedJobs.map(job => (
@@ -678,6 +689,15 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                                     <span className="text-gray-500">{job.jobId.slice(0, 8)}</span>
                                     <span>{formatJobStatus(job.status)}</span>
                                     <span className="text-red-400">{job.errorMessage || "Render failed"}</span>
+                                    {(job.status === "failed_retryable" || job.status === "orphaned") && (
+                                        <button
+                                            type="button"
+                                            onClick={() => retryJob(job.jobId)}
+                                            className="ml-auto px-1.5 py-0.5 border border-red-400/40 text-red-300 hover:border-cyan-400 hover:text-cyan-300 transition-colors"
+                                        >
+                                            [Retry]
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -870,7 +890,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                                                         errorMessage={stepAnims.visualization.errorMessage}
                                                         renderTimeMs={stepAnims.visualization.renderTimeMs}
                                                         videoType="visualization"
-                                                        onRetry={() => generateStep(problemId, step.step)}
+                                                        onRetry={() => generateStep(problemId, step.step, "visualization")}
                                                     />
                                                 )}
                                                 {stepAnims.calculation && (
@@ -881,7 +901,7 @@ export function ReasoningPanel({ problemId, totalSteps, problemName = "Solution"
                                                         errorMessage={stepAnims.calculation.errorMessage}
                                                         renderTimeMs={stepAnims.calculation.renderTimeMs}
                                                         videoType="calculation"
-                                                        onRetry={() => generateStep(problemId, step.step)}
+                                                        onRetry={() => generateStep(problemId, step.step, "calculation")}
                                                     />
                                                 )}
                                             </div>

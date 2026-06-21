@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createManimJob, getManimBackends, getManimJob, getManimStatus, getManimVideoUrl } from "@/lib/api";
+import { cancelManimJob, createManimJob, getManimBackends, getManimJob, getManimStatus, getManimVideoUrl, retryManimJob } from "@/lib/api";
 import type {
     CreateManimJobResponse,
     ManimAnimation,
@@ -34,7 +34,9 @@ interface UseManimAnimationsResult {
     activeJobs: ManimJob[];
     failedJobs: ManimJob[];
     generateAll: (problemId: number) => Promise<void>;
-    generateStep: (problemId: number, stepNumber: number) => Promise<void>;
+    generateStep: (problemId: number, stepNumber: number, videoType?: ManimVideoType) => Promise<void>;
+    cancelJob: (jobId: string) => Promise<void>;
+    retryJob: (jobId: string) => Promise<void>;
     refreshStatus: (problemId: number) => Promise<void>;
     getVideoUrl: (problemId: number, stepNumber: number, videoType?: string) => string;
     getAnimationsByStep: (stepNumber: number) => { visualization?: ManimAnimation; calculation?: ManimAnimation };
@@ -188,9 +190,44 @@ export function useManimAnimations(): UseManimAnimationsResult {
         await submitJob(pid);
     }, [submitJob]);
 
-    const generateStep = useCallback(async (pid: number, stepNumber: number) => {
-        await submitJob(pid, stepNumber);
+    const generateStep = useCallback(async (pid: number, stepNumber: number, videoType?: ManimVideoType) => {
+        await submitJob(pid, stepNumber, videoType);
     }, [submitJob]);
+
+    const cancelJob = useCallback(async (jobId: string) => {
+        setError(null);
+        try {
+            const result = await cancelManimJob(jobId);
+            const current = activeJobsRef.current.get(jobId);
+            if (current) {
+                activeJobsRef.current.set(jobId, {
+                    ...current,
+                    job: { ...current.job, status: result.status },
+                });
+                syncJobsState();
+                if (isActiveJobStatus(result.status)) {
+                    startPolling();
+                }
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to cancel animation job");
+        }
+    }, [startPolling, syncJobsState]);
+
+    const retryJob = useCallback(async (jobId: string) => {
+        setError(null);
+        const original = activeJobsRef.current.get(jobId);
+        if (!original) {
+            setError("Cannot retry: original job is no longer tracked");
+            return;
+        }
+        try {
+            const response = await retryManimJob(jobId);
+            trackJob(original.problemId, response);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to retry animation job");
+        }
+    }, [trackJob]);
 
     const getVideoUrl = useCallback((pid: number, stepNumber: number, videoType?: string): string => {
         return getManimVideoUrl(pid, stepNumber, videoType);
@@ -254,6 +291,8 @@ export function useManimAnimations(): UseManimAnimationsResult {
         failedJobs,
         generateAll,
         generateStep,
+        cancelJob,
+        retryJob,
         refreshStatus,
         getVideoUrl,
         getAnimationsByStep,
